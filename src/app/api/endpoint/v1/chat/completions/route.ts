@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import {
-  MODEL_ID,
+  DEFAULT_PERSONA,
+  resolvePersona,
   findKeyRow,
   extractApiKey,
   rateLimited,
@@ -14,7 +15,7 @@ import {
   openAiCompletionPayload,
   estimateTokens,
 } from "@/lib/endpoint";
-import { completeAssist } from "@/lib/assist-core";
+import { completeAssist, completeGeneral } from "@/lib/assist-core";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -58,12 +59,16 @@ export async function POST(req: NextRequest) {
     return oaiError(400, "Send at least one user message in `messages`.");
   }
 
-  const requestedModel = typeof body.model === "string" && body.model.trim() ? body.model.trim().slice(0, 64) : MODEL_ID;
+  const requestedModel = typeof body.model === "string" && body.model.trim() ? body.model.trim().slice(0, 64) : DEFAULT_PERSONA;
+  const persona = resolvePersona(requestedModel);
   const id = `chatcmpl-${randomUUID().replace(/-/g, "").slice(0, 24)}`;
   const promptTokens = estimateTokens(chat.history.map((m) => m.content).join("\n") + chat.toolSystem);
 
   try {
-    const reply = await completeAssist(chat.history, { extraSystem: chat.toolSystem });
+    const reply =
+      persona === "z-code"
+        ? await completeGeneral(chat.history, { extraSystem: chat.toolSystem, images: chat.images })
+        : await completeAssist(chat.history, { extraSystem: chat.toolSystem });
 
     const mirrored = await mirrorThread(keyRow.conversationToken, { lastUser: chat.lastUser, reply }).catch(() => null);
     if (mirrored && mirrored !== keyRow.conversationToken) {
@@ -71,7 +76,7 @@ export async function POST(req: NextRequest) {
         .update({ where: { id: keyRow.id }, data: { conversationToken: mirrored } })
         .catch(() => undefined);
     }
-    await touchKey(keyRow.id, requestedModel).catch(() => undefined);
+    await touchKey(keyRow.id, persona).catch(() => undefined);
 
     if (body.stream === true) {
       const encoder = new TextEncoder();

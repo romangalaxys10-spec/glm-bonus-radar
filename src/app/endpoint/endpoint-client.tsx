@@ -76,6 +76,7 @@ export function EndpointClient() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [testModel, setTestModel] = useState<"z-assist" | "z-code">("z-assist");
   const pwRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -142,7 +143,7 @@ export function EndpointClient() {
         method: "POST",
         headers: { authorization: `Bearer ${info.key}`, "content-type": "application/json" },
         body: JSON.stringify({
-          model: "z-assist",
+          model: testModel,
           messages: [{ role: "user", content: question.trim() }],
         }),
       });
@@ -152,6 +153,7 @@ export function EndpointClient() {
         return;
       }
       setAnswer(data.choices?.[0]?.message?.content ?? "(empty reply)");
+      setAnswer((prev) => (prev && !prev.startsWith("✗") ? `[${testModel}] ${prev}` : prev));
       const token = info.conversationToken;
       if (!token) {
         // first call mints the mirrored web thread — refresh quietly
@@ -163,7 +165,7 @@ export function EndpointClient() {
     } finally {
       setAsking(false);
     }
-  }, [info, question, asking]);
+  }, [info, question, asking, testModel]);
 
   /* ------------------------------- locked ------------------------------- */
 
@@ -225,33 +227,37 @@ export function EndpointClient() {
   const key = info?.key ?? "";
   const base = origin;
   const snippets = {
-    claude: `# 1) point Claude Code at Z-Assist
+    claude: `# 1) point Claude Code at Z-Code / Z-Assist
 export ANTHROPIC_BASE_URL="${base}/api/endpoint"
 export ANTHROPIC_AUTH_TOKEN="${key}"
-export ANTHROPIC_MODEL="z-assist"
+export ANTHROPIC_MODEL="z-code"
 export ANTHROPIC_SMALL_FAST_MODEL="z-assist"
 
-# 2) chat — answers come from the docs-grounded Z-Assist brain
-claude "when is the next bonus window?"`,
+# model ids: z-code = general all-capable (vision, coding, agentic)
+#            z-assist = docs-grounded z.ai support only
+
+# 2) chat
+claude "refactor src/lib/windows.ts and explain the diff"`,
     zcode: `# Any tool that accepts a custom OpenAI-compatible base URL
 # (zcode, Cline, Continue, aider, …)
 export OPENAI_BASE_URL="${base}/api/endpoint/v1"
 export OPENAI_API_KEY="${key}"
 
-# model id: z-assist
+# model ids: z-code (general · vision · coding · agentic)
+#            z-assist (docs-grounded z.ai support only)
 # endpoint: POST ${base}/api/endpoint/v1/chat/completions`,
-    curl: `# OpenAI dialect
+    curl: `# general persona (vision, coding, agentic)
 curl -s ${base}/api/endpoint/v1/chat/completions \\
   -H "Authorization: Bearer ${key}" \\
   -H "Content-Type: application/json" \\
-  -d '{"model":"z-assist","messages":[{"role":"user","content":"When is the next bonus window?"}]}'
+  -d '{"model":"z-code","messages":[{"role":"user","content":"Write a bash one-liner to tail a log for errors"}]}'
 
-# Anthropic dialect (what Claude Code speaks)
+# docs-grounded z.ai support persona (Anthropic dialect)
 curl -s ${base}/api/endpoint/v1/messages \\
   -H "x-api-key: ${key}" \\
   -H "anthropic-version: 2023-06-01" \\
   -H "Content-Type: application/json" \\
-  -d '{"model":"z-assist","max_tokens":1024,"messages":[{"role":"user","content":"What is the current credit phase?"}]}'`,
+  -d '{"model":"z-assist","max_tokens":1024,"messages":[{"role":"user","content":"When is the next bonus window?"}]}'`,
   };
 
   return (
@@ -262,9 +268,13 @@ curl -s ${base}/api/endpoint/v1/messages \\
           Z-Assist IDE endpoint
         </h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--rc-text-dim)]">
-          Chat with Z-Assist from your IDE. Tools speak either the OpenAI- or the
-          Anthropic-compatible dialect below — both are answered by the same docs-grounded brain as
-          the web chat, and every thread is mirrored to the web so you can continue it there.
+          Two model types, one endpoint:{" "}
+          <span className="font-semibold text-[var(--rc-text)]">z-assist</span> is limited to z.ai
+          support only (docs-grounded),{" "}
+          <span className="font-semibold text-[var(--rc-text)]">z-code</span> is the general
+          all-capable assistant — vision, coding, agentic, all in one. Tools speak either the
+          OpenAI- or the Anthropic-compatible dialect below, and every thread is mirrored to the
+          web so you can continue it there.
         </p>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--rc-text-dim)]">
           <span className="font-semibold text-[var(--rc-text)]">Unlimited questions</span> — the
@@ -314,7 +324,7 @@ curl -s ${base}/api/endpoint/v1/messages \\
           {[
             { method: "POST", url: `${base}/api/endpoint/v1/chat/completions`, note: "OpenAI-compatible — zcode & friends" },
             { method: "POST", url: `${base}/api/endpoint/v1/messages`, note: "Anthropic-compatible — Claude Code" },
-            { method: "GET", url: `${base}/api/endpoint/v1/models`, note: "model list (z-assist)" },
+            { method: "GET", url: `${base}/api/endpoint/v1/models`, note: "model list (z-code · z-assist)" },
           ].map((row) => (
             <li key={row.url} className="flex items-center gap-3 rounded-xl border border-[var(--rc-border)] px-3 py-2.5">
               <span
@@ -341,23 +351,37 @@ curl -s ${base}/api/endpoint/v1/messages \\
         <p className="font-mono text-[11px] tracking-widest text-[var(--rc-text-dim)] uppercase">models</p>
         <ul className="mt-3 space-y-2">
           <li className="flex items-center gap-3 rounded-xl border border-[var(--rc-accent)] px-3 py-2.5">
-            <span className="w-11 shrink-0 rounded-md bg-[var(--rc-accent)] px-1.5 py-0.5 text-center font-mono text-[10px] font-bold text-[var(--rc-on-accent)]">
-              main
+            <span className="w-14 shrink-0 rounded-md bg-[var(--rc-accent)] px-1.5 py-0.5 text-center font-mono text-[10px] font-bold text-[var(--rc-on-accent)]">
+              general
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-mono text-xs text-[var(--rc-text)]">z-code</p>
+              <p className="text-[11px] text-[var(--rc-text-dim)]">
+                general all-capable assistant — vision (image/screenshot analysis), coding, agentic
+                planning, general knowledge — all in one
+              </p>
+            </div>
+            <CopyButton text="z-code" label="copy id" />
+          </li>
+          <li className="flex items-center gap-3 rounded-xl border border-[var(--rc-border)] px-3 py-2.5">
+            <span className="w-14 shrink-0 rounded-md border border-[var(--rc-border)] px-1.5 py-0.5 text-center font-mono text-[10px] font-bold text-[var(--rc-text-dim)]">
+              support
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate font-mono text-xs text-[var(--rc-text)]">z-assist</p>
               <p className="text-[11px] text-[var(--rc-text-dim)]">
-                the docs-grounded Z-Assist brain — put this exact model id in your coding tool
+                limited to z.ai support only — bonus windows, peak rates, plans, official docs;
+                grounded in the hourly docs sync
               </p>
             </div>
             <CopyButton text="z-assist" label="copy id" />
           </li>
         </ul>
         <p className="mt-3 border-t border-[var(--rc-border)] pt-3 text-[11px] leading-relaxed text-[var(--rc-text-dim)]">
-          Any model string is accepted — tools that hardcode e.g.{" "}
-          <span className="font-mono">claude-*</span> or <span className="font-mono">gpt-*</span>{" "}
-          keep working untouched, because every call is answered by Z-Assist regardless of the
-          requested model. The full list is also served at{" "}
+          Pick the id per task in your coding tool. Any other model string also works — ids
+          containing{" "}
+          <span className="font-mono">code</span> route to z-code, everything else to z-assist; the
+          requested id is echoed back. Full list served at{" "}
           <span className="font-mono">GET /api/endpoint/v1/models</span>.
         </p>
       </section>
@@ -403,6 +427,27 @@ curl -s ${base}/api/endpoint/v1/messages \\
         <p className="font-mono text-[11px] tracking-widest text-[var(--rc-text-dim)] uppercase">
           live test · openai dialect
         </p>
+        <div className="mt-3 flex gap-2">
+          {(
+            [
+              ["z-assist", "z-assist · support"],
+              ["z-code", "z-code · general"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTestModel(id)}
+              className={`rounded-lg px-3 py-1.5 font-mono text-xs transition-colors ${
+                testModel === id
+                  ? "bg-[var(--rc-accent)] text-[var(--rc-on-accent)]"
+                  : "border border-[var(--rc-border)] text-[var(--rc-text-dim)] hover:border-[var(--rc-accent)] hover:text-[var(--rc-accent)]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();

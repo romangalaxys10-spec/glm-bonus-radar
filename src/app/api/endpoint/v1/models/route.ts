@@ -1,10 +1,15 @@
 import { NextRequest } from "next/server";
-import { MODEL_ID, findKeyRow, extractApiKey } from "@/lib/endpoint";
+import { MODEL_IDS, findKeyRow, extractApiKey } from "@/lib/endpoint";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** OpenAI-compatible model listing — advertises the Z-Assist model id. */
+const MODEL_META: Record<string, string> = {
+  "z-assist": "Docs-grounded z.ai support only — bonus windows, pricing, quotas, official docs.",
+  "z-code": "General all-capable assistant — vision, coding, agentic planning, all in one.",
+};
+
+/** OpenAI-compatible model listing — the two IDE personas. */
 export async function GET(req: NextRequest) {
   const keyRow = await findKeyRow(extractApiKey(req)).catch(() => null);
   if (!keyRow) {
@@ -15,13 +20,12 @@ export async function GET(req: NextRequest) {
   }
   return Response.json({
     object: "list",
-    data: [
-      {
-        id: MODEL_ID,
-        object: "model",
-        created: 1735689600,
-        owned_by: "glm-bonus-radar",
-      },
-    ],
+    data: MODEL_IDS.map((id) => ({
+      id,
+      object: "model",
+      created: 1735689600,
+      owned_by: "glm-bonus-radar",
+      ...(MODEL_META[id] ? { description: MODEL_META[id] } : {}),
+    })),
   });
 }

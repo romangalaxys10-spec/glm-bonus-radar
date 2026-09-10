@@ -23,7 +23,24 @@ import {
  */
 
 export const ENDPOINT_KEY_PREFIX = "za_sk_";
-export const MODEL_ID = "z-assist";
+
+/**
+ * The two personas served on the IDE endpoint:
+ *  - z-assist: docs-grounded, z.ai support ONLY (portal knowledge base +
+ *    hourly docs snapshot; refuses/inherits pointers for everything else)
+ *  - z-code:   general all-capable assistant — vision, coding, agentic
+ *              planning, general knowledge, all in one
+ */
+export type ModelPersona = "z-assist" | "z-code";
+export const MODEL_IDS: ModelPersona[] = ["z-assist", "z-code"];
+export const DEFAULT_PERSONA: ModelPersona = "z-assist";
+
+/** Maps any requested model string to its persona ("…code…" → z-code). */
+export function resolvePersona(raw: string | null | undefined): ModelPersona {
+  const s = (raw ?? "").toLowerCase();
+  if (s.includes("code")) return "z-code";
+  return DEFAULT_PERSONA;
+}
 
 export function endpointPassword(): string {
   return process.env.ENDPOINT_PASSWORD ?? "q1w2e3r4";
@@ -113,8 +130,10 @@ export function clientIp(req: Request): string {
 
 export const MAX_TOOL_MESSAGE_CHARS = 8000;
 const SYSTEM_INJECT_CAP = 1200;
+const MAX_IMAGES = 4;
+const MAX_IMAGE_CHARS = 5_000_000; // ~3.7 MB binary per image
 
-type RawContent = string | Array<{ type?: string; text?: unknown }> | null | undefined;
+type RawContent = string | Array<Record<string, unknown>> | null | undefined;
 
 function flattenContent(content: RawContent): string {
   if (typeof content === "string") return content;
@@ -128,12 +147,38 @@ function flattenContent(content: RawContent): string {
   return "";
 }
 
+/** Pulls data-URI images out of either dialect's content parts. */
+function extractImages(content: RawContent, images: string[]): void {
+  if (!Array.isArray(content)) return;
+  for (const part of content) {
+    if (!part || typeof part !== "object" || images.length >= MAX_IMAGES) return;
+    const type = (part as { type?: unknown }).type;
+    if (type === "image_url") {
+      const url = (part as { image_url?: { url?: unknown } }).image_url?.url;
+      if (typeof url === "string" && /^(data:image|https:\/\/)/.test(url) && url.length <= MAX_IMAGE_CHARS) {
+        images.push(url);
+      }
+    } else if (type === "image") {
+      const source = (part as { source?: Record<string, unknown> }).source;
+      if (source && source.type === "base64" && typeof source.data === "string" && typeof source.media_type === "string") {
+        const uri = `data:${source.media_type};base64,${source.data}`;
+        if (uri.length <= MAX_IMAGE_CHARS) images.push(uri);
+      } else if (source && source.type === "url" && typeof source.url === "string") {
+        const uri = source.url;
+        if (/^(data:image|https:\/\/)/.test(uri) && uri.length <= MAX_IMAGE_CHARS) images.push(uri);
+      }
+    }
+  }
+}
+
 export interface NormalizedChat {
   history: IncomingMessage[];
   /** Trimmed client system prompt(s), merged — passed to the brain as tool context. */
   toolSystem: string;
   /** Last user message (used for the mirrored thread + title). */
   lastUser: string | null;
+  /** Data-URI images extracted from OpenAI/Anthropic content parts (vision). */
+  images: string[];
 }
 
 /**
@@ -148,6 +193,7 @@ export function normalizeChat(input: {
 }): NormalizedChat {
   const raw = Array.isArray(input.messages) ? input.messages : [];
   const history: IncomingMessage[] = [];
+  const images: string[] = [];
 
   const systemParts: string[] = [];
   if (typeof input.system === "string" && input.system.trim()) {
@@ -165,6 +211,7 @@ export function normalizeChat(input: {
     if (role === "system" || role === "developer") {
       systemParts.push(content);
     } else if (role === "user" || role === "assistant") {
+      extractImages((m as { content?: RawContent }).content, images);
       history.push({ role, content: content.slice(0, MAX_TOOL_MESSAGE_CHARS) });
     }
     // tool / function roles: skipped — Z-Assist is a pure chat persona here.
@@ -177,7 +224,7 @@ export function normalizeChat(input: {
     .trim();
 
   const lastUser = [...history].reverse().find((m) => m.role === "user")?.content ?? null;
-  return { history, toolSystem, lastUser };
+  return { history, toolSystem, lastUser, images };
 }
 
 /* ------------------------- mirrored web conversation --------------------- */
@@ -267,12 +314,12 @@ export function openAiCompletionPayload(id: string, model: string, content: stri
   };
 }
 
-export function anthropicMessagePayload(id: string, content: string, promptTokens: number) {
+export function anthropicMessagePayload(id: string, model: string, content: string, promptTokens: number) {
   return {
     id,
     type: "message" as const,
     role: "assistant" as const,
-    model: MODEL_ID,
+    model,
     content: [{ type: "text" as const, text: content }],
     stop_reason: "end_turn" as const,
     stop_sequence: null,

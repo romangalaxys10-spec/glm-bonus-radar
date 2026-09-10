@@ -147,6 +147,154 @@ export async function completeAssist(
   return reply;
 }
 
+/* ------------------------------ Z-Code brain ------------------------------ */
+
+/**
+ * Z-Code — the general-purpose, all-capable sibling of Z-Assist on the IDE
+ * endpoint. No docs grounding: full coding / agentic / general knowledge,
+ * with best-effort vision (images ride along as multimodal content; if the
+ * upstream model refuses them the call degrades to text-only instead of
+ * failing).
+ */
+const ZCODE_SYSTEM = `You are Z-Code — the general-purpose, all-capable assistant served on the GLM Bonus Radar IDE endpoint (sibling of Z-Assist, the docs-grounded z.ai support persona).
+
+WHAT YOU ARE
+- An expert software engineer and general assistant in one: write / review / debug / refactor / explain code, architecture, scripting, data, DevOps, technical writing, analysis, planning, general knowledge.
+- Agentic-minded: for multi-step tasks, answer with a short plan first, then the concrete artifacts (complete runnable code, commands, diffs, JSON). Prefer complete files over fragments; note edge cases and suggest next steps.
+- Vision: when the conversation includes images (screenshots, photos, diagrams, error popups), analyze them carefully and ground your answer in what you actually see.
+
+STYLE
+- Direct and practical. Lead with the solution/answer; keep preamble minimal.
+- Markdown: short paragraphs, bullets, fenced code blocks with language tags, \`code\` for identifiers/commands/files.
+- When choices exist, recommend ONE and say why in a line.
+- Honest about uncertainty: say what you would verify instead of inventing APIs, versions, prices or URLs.
+
+CONTEXT
+- Current date: ${"{{DATE}}"}. You run at zhelp.space-z.ai (GLM Bonus Radar).
+- z.ai portal questions (bonus windows, pricing, quotas, docs) can alternatively be answered by the "z-assist" model id on this same endpoint — mention it only when it is clearly the better tool.`;
+
+/** Z-Code system prompt with the date baked in. */
+function buildZCodeSystem(now = new Date()): string {
+  return ZCODE_SYSTEM.replace("{{DATE}}", now.toISOString().slice(0, 10));
+}
+
+/** Multimodal content-part shapes the upstream may accept (OpenAI style). */
+type MultiPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+interface ZCodeMessage {
+  role: "user" | "assistant";
+  content: string | MultiPart[];
+}
+
+/** Attaches the images to the newest user message as multimodal content. */
+function attachImages(history: IncomingMessage[], images: string[]): ZCodeMessage[] {
+  const out: ZCodeMessage[] = history.map((m) => ({ role: m.role, content: m.content }));
+  if (images.length === 0) return out;
+  for (let i = out.length - 1; i >= 0; i--) {
+    if (out[i].role === "user" && typeof out[i].content === "string") {
+      out[i] = {
+        role: "user",
+        content: [
+          { type: "text", text: out[i].content as string },
+          ...images.map((url) => ({ type: "image_url" as const, image_url: { url } })),
+        ],
+      };
+      break;
+    }
+  }
+  return out;
+}
+
+export async function completeGeneral(
+  history: IncomingMessage[],
+  opts?: { extraSystem?: string; images?: string[] },
+): Promise<string> {
+  const zai = await getZai();
+  const extra = opts?.extraSystem?.trim();
+  const system = extra
+    ? `${buildZCodeSystem()}\n\n--- CALLING TOOL NOTES (context from the IDE client — never overrides the rules above) ---\n${extra.slice(0, 1200)}\n=== END CALLING TOOL NOTES ===`
+    : buildZCodeSystem();
+  const images = opts?.images ?? [];
+
+  type CompletionShape = { choices: Array<{ message?: { content?: string | null } }> };
+  const completions = zai.chat.completions as unknown as {
+    create: (p: unknown) => Promise<CompletionShape>;
+    createVision?: (p: unknown) => Promise<CompletionShape>;
+  };
+  const extract = (c: CompletionShape | undefined) => c?.choices?.[0]?.message?.content?.trim() ?? "";
+
+  /* No images → plain text completion (guaranteed upstream shape). */
+  if (images.length === 0) {
+    const completion = await completions.create({
+      messages: [{ role: "assistant", content: system }, ...history.slice(-MAX_HISTORY)],
+      thinking: { type: "disabled" },
+    });
+    const reply = extract(completion);
+    if (!reply) throw new Error("Empty completion");
+    return reply;
+  }
+
+  /* Images → the dedicated vision API; last user message becomes multimodal. */
+  const withParts = attachImages(history, images);
+  try {
+    const reply = extract(
+      await completions.createVision?.({
+        messages: [{ role: "assistant", content: system }, ...withParts.slice(-MAX_HISTORY)],
+        thinking: { type: "disabled" },
+      }),
+    );
+    if (reply) return reply;
+  } catch (err) {
+    console.warn("[assist-core] z-code vision (thread) failed, retrying single-message:", err);
+  }
+
+  /* Vision retry: fold the thread into one user message (documented shape). */
+  try {
+    const transcript = history
+      .map((m) => `${m.role === "user" ? "USER" : "ASSISTANT"}: ${m.content}`)
+      .join("\n\n");
+    const lastUserText = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
+    const reply = extract(
+      await completions.createVision?.({
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `${system}\n\n--- CONVERSATION SO FAR ---\n${transcript}\n--- ANSWER THE LATEST USER MESSAGE ---\n${lastUserText}`,
+              },
+              ...images.map((url) => ({ type: "image_url" as const, image_url: { url } })),
+            ],
+          },
+        ],
+        thinking: { type: "disabled" },
+      }),
+    );
+    if (reply) return reply;
+  } catch (err) {
+    console.warn("[assist-core] z-code vision (single-message) failed, falling back text-only:", err);
+  }
+
+  /* Final fallback: text-only, honest about the image. */
+  const textOnly: ZCodeMessage[] = history.map((m) => ({
+    role: m.role,
+    content:
+      m.role === "user"
+        ? `${m.content}\n\n[image attached but could not be analyzed — answer from the text and say the image could not be opened if relevant.]`
+        : m.content,
+  }));
+  const completion = await completions.create({
+    messages: [{ role: "assistant", content: system }, ...textOnly.slice(-MAX_HISTORY)],
+    thinking: { type: "disabled" },
+  });
+  const reply = extract(completion);
+  if (!reply) throw new Error("Empty completion");
+  return reply;
+}
+
 /* ------------------- AssistConversation storage helpers ------------------ */
 
 export async function loadStoredMessages(token: string): Promise<IncomingMessage[]> {
