@@ -98,3 +98,21 @@ model ZAssistBot {
 
   @@index([ownerKey])
 }
+
+/// Secret IDE-endpoint keys issued behind the password gate at /endpoint.
+/// A key authenticates calls from IDE tools (zcode / Claude Code) against
+/// the OpenAI-compatible (/api/endpoint/v1/chat/completions) and
+/// Anthropic-compatible (/api/endpoint/v1/messages) Z-Assist routes, and
+/// mirrors each thread into a shared AssistConversation so the chat
+/// continues on the web via the resume token.
+model EndpointKey {
+  id        String    @id @default(cuid())
+  key       String    @unique
+  label     String    @default("IDE tools")
+  /// AssistConversation token the IDE thread mirrors into (web-continuable).
+  conversationToken String?
+  callCount Int       @default(0)
+  lastUsedAt DateTime?
+  lastModel String?
+  createdAt DateTime  @default(now())
+}
