@@ -266,6 +266,11 @@ curl -s ${base}/api/endpoint/v1/messages \\
           Anthropic-compatible dialect below — both are answered by the same docs-grounded brain as
           the web chat, and every thread is mirrored to the web so you can continue it there.
         </p>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--rc-text-dim)]">
+          <span className="font-semibold text-[var(--rc-text)]">Unlimited questions</span> — the
+          daily 5-question cap only applies to the Telegram bot. This endpoint has no daily limit,
+          just a 60 req / 5 min fair-use guard.
+        </p>
       </section>
 
       {/* secret key */}
@@ -329,6 +334,32 @@ curl -s ${base}/api/endpoint/v1/messages \\
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* models */}
+      <section className="rounded-2xl border border-[var(--rc-border)] bg-[var(--rc-surface)] p-5">
+        <p className="font-mono text-[11px] tracking-widest text-[var(--rc-text-dim)] uppercase">models</p>
+        <ul className="mt-3 space-y-2">
+          <li className="flex items-center gap-3 rounded-xl border border-[var(--rc-accent)] px-3 py-2.5">
+            <span className="w-11 shrink-0 rounded-md bg-[var(--rc-accent)] px-1.5 py-0.5 text-center font-mono text-[10px] font-bold text-[var(--rc-on-accent)]">
+              main
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-mono text-xs text-[var(--rc-text)]">z-assist</p>
+              <p className="text-[11px] text-[var(--rc-text-dim)]">
+                the docs-grounded Z-Assist brain — put this exact model id in your coding tool
+              </p>
+            </div>
+            <CopyButton text="z-assist" label="copy id" />
+          </li>
+        </ul>
+        <p className="mt-3 border-t border-[var(--rc-border)] pt-3 text-[11px] leading-relaxed text-[var(--rc-text-dim)]">
+          Any model string is accepted — tools that hardcode e.g.{" "}
+          <span className="font-mono">claude-*</span> or <span className="font-mono">gpt-*</span>{" "}
+          keep working untouched, because every call is answered by Z-Assist regardless of the
+          requested model. The full list is also served at{" "}
+          <span className="font-mono">GET /api/endpoint/v1/models</span>.
+        </p>
       </section>
 
       {/* setup snippets */}
@@ -410,7 +441,7 @@ curl -s ${base}/api/endpoint/v1/messages \\
           </p>
           <p className="mt-1 text-[11px] text-[var(--rc-text-dim)]">
             {info?.lastUsedAt ? `last used ${new Date(info.lastUsedAt).toLocaleString()}` : "not used yet"}
-            {" · limit 60 req / 5 min"}
+            {" · 60 req / 5 min fair-use · no daily question cap"}
           </p>
         </div>
         <div className="rounded-2xl border border-[var(--rc-border)] bg-[var(--rc-surface)] p-5">
