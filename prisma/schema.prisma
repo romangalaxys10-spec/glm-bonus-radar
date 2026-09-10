@@ -66,3 +66,35 @@ model TelegramChat {
   prefs     String   @default("{\"golden\":true,\"windows\":true,\"announcements\":true}")
   createdAt DateTime @default(now())
 }
+
+/// A visitor's own Telegram bot paired with Z-Assist.
+/// Flow: portal posts bot token -> we verify (getMe) -> owner sends
+/// "/start <pairCode>" to the bot -> status flips to active and every
+/// text message is answered by the Z-Assist engine (5 questions/day,
+/// then a free handoff to the web chat via conversationToken).
+model ZAssistBot {
+  id        String   @id @default(cuid())
+  /// Browser-generated secret scoping portal UI visibility (never the bot token).
+  ownerKey  String   @default("")
+  botToken  String   @unique
+  botId     String
+  botUsername String
+  pairCode  String
+  /// "pending" (awaiting /start <pairCode>) | "active" (paired chat).
+  status    String   @default("pending")
+  ownerChatId  String?
+  ownerTitle   String?
+  ownerUserId  String?
+  /// AssistConversation token — the same thread continues on the web chat.
+  conversationToken String?
+  /// Daily free-question counter (resets at midnight SGT).
+  questionsDate  String?
+  questionsToday Int     @default(0)
+  totalReplies   Int     @default(0)
+  lastMessageAt  DateTime?
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([ownerKey])
+}

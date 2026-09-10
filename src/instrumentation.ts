@@ -35,6 +35,7 @@ export async function register() {
 
   const { checkWindowFlips } = await import("@/lib/alerts");
   const { pollTelegramUpdates } = await import("@/lib/telegram");
+  const { pollAssistBots } = await import("@/lib/assist-telegram");
 
   setTimeout(() => void tick("boot"), 20_000).unref?.();
   setInterval(() => void tick("hourly"), HOUR_MS).unref?.();
@@ -43,6 +44,9 @@ export async function register() {
   // Both no-op cheaply while no bot token is configured.
   setInterval(() => void pollTelegramUpdates().catch(() => {}), 5_000).unref?.();
   setInterval(() => void checkWindowFlips().catch(() => {}), 60_000).unref?.();
+
+  // Paired visitor bots: /start codes, questions (5/day), commands.
+  setInterval(() => void pollAssistBots().catch(() => {}), 4_000).unref?.();
   // NOTE: dynamic import caches the module per process — server restarts pick
   // up contract changes (e.g. announcements string[] -> {text, source}).
 }

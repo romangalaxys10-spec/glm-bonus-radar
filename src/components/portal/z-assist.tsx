@@ -258,6 +258,52 @@ function HistoryIcon({ className }: { className?: string }) {
   );
 }
 
+function TelegramIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="m22 2-7 20-4-9-9-4Z" />
+      <path d="M22 2 11 13" />
+    </svg>
+  );
+}
+
+/* -------------------------- telegram pairing ----------------------------- */
+
+interface TgBot {
+  id: string;
+  botUsername: string;
+  status: string;
+  pairCode: string | null;
+  deepLink: string;
+  tokenTail: string;
+  ownerTitle: string | null;
+  conversationToken: string | null;
+  usedToday: number;
+  dailyLimit: number;
+  totalReplies: number;
+  lastMessageAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
+
+const TG_KEY = "br-zassist-tgkey";
+
+/** Browser-scoped secret that keeps this visitor's bot list private. */
+function loadOwnerKey(): string {
+  try {
+    let k = localStorage.getItem(TG_KEY);
+    if (!k) {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      k = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+      localStorage.setItem(TG_KEY, k);
+    }
+    return k;
+  } catch {
+    return "local-fallback-key";
+  }
+}
+
 /* ------------------------------- component ------------------------------- */
 
 /** Small CTA that pops the chat open from anywhere on the page. */
@@ -300,6 +346,12 @@ export function ZAssist() {
   const [resumeValue, setResumeValue] = useState("");
   const [resumeError, setResumeError] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [tgOpen, setTgOpen] = useState(false);
+  const [tgBots, setTgBots] = useState<TgBot[]>([]);
+  const [tgTokenInput, setTgTokenInput] = useState("");
+  const [tgBusy, setTgBusy] = useState(false);
+  const [tgError, setTgError] = useState<string | null>(null);
+  const [tgCopiedId, setTgCopiedId] = useState<string | null>(null);
 
   /* mid-session announcement news — badge the teaser/launcher so the
      visitor notices the strip update and the assistant at the same time */
@@ -357,15 +409,19 @@ export function ZAssist() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, thinking, reveal, open]);
 
-  /* escape closes */
+  /* escape closes — overlays first, panel last */
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        if (tgOpen) setTgOpen(false);
+        else if (historyOpen) setHistoryOpen(false);
+        else setOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, tgOpen, historyOpen]);
 
   const fetchHistory = useCallback(async () => {
     const tokens = loadTokenList();
@@ -557,6 +613,105 @@ export function ZAssist() {
     }
   }, [token]);
 
+  /* --- one-click resume: /?token=ABC deep link (Telegram handoff lands here) --- */
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("token");
+    if (!t) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    const clean = t.trim().toUpperCase();
+    if (/^[A-Z0-9]{6,12}$/.test(clean)) {
+      setOpen(true);
+      setTeaser(false);
+      try {
+        localStorage.setItem(OPENED_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+      void resumeByToken(clean);
+    }
+  }, [resumeByToken]);
+
+  /* --- telegram pairing: live list while the overlay is open --- */
+  useEffect(() => {
+    if (!tgOpen) return;
+    const ownerKey = loadOwnerKey();
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/assist-telegram?ownerKey=${encodeURIComponent(ownerKey)}`);
+        if (!res.ok || !alive) return;
+        const data = (await res.json()) as { bots?: TgBot[] };
+        if (Array.isArray(data.bots) && alive) setTgBots(data.bots);
+      } catch {
+        /* keep previous list */
+      }
+    };
+    void load();
+    const iv = setInterval(load, 3000);
+    return () => {
+      alive = false;
+      clearInterval(iv);
+    };
+  }, [tgOpen]);
+
+  const pairTelegram = useCallback(async () => {
+    const t = tgTokenInput.trim();
+    if (!t || tgBusy) return;
+    setTgBusy(true);
+    setTgError(null);
+    try {
+      const res = await fetch("/api/assist-telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pair", token: t, ownerKey: loadOwnerKey() }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; bot?: TgBot; error?: string };
+      if (!res.ok || !data.bot) {
+        throw new Error(data.error || "Pairing failed — please try again.");
+      }
+      const bot = data.bot;
+      setTgTokenInput("");
+      setTgBots((prev) => [bot, ...prev.filter((b) => b.id !== bot.id)]);
+    } catch (err) {
+      setTgError(err instanceof Error ? err.message : "Pairing failed — please try again.");
+    } finally {
+      setTgBusy(false);
+    }
+  }, [tgTokenInput, tgBusy]);
+
+  const tgAction = useCallback(async (action: "code" | "unpair", id: string) => {
+    try {
+      await fetch("/api/assist-telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, id, ownerKey: loadOwnerKey() }),
+      });
+      setTgBots((prev) =>
+        action === "unpair" ? prev.filter((b) => b.id !== id) : prev,
+      );
+      if (action === "code") {
+        // refetch to show the fresh code
+        const res = await fetch(`/api/assist-telegram?ownerKey=${encodeURIComponent(loadOwnerKey())}`);
+        if (res.ok) {
+          const data = (await res.json()) as { bots?: TgBot[] };
+          if (Array.isArray(data.bots)) setTgBots(data.bots);
+        }
+      }
+    } catch {
+      /* transient — the 3s poller will reconcile */
+    }
+  }, []);
+
+  const copyTgToken = useCallback(async (id: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setTgCopiedId(id);
+      setTimeout(() => setTgCopiedId(null), 1400);
+    } catch {
+      /* clipboard blocked */
+    }
+  }, []);
+
   const resetHeight = useCallback((el: HTMLTextAreaElement | null) => {
     if (!el) return;
     el.style.height = "auto";
@@ -666,6 +821,7 @@ export function ZAssist() {
           type="button"
           onClick={() => {
             setHistoryOpen((v) => !v);
+            setTgOpen(false);
             setResumeError(null);
             void fetchHistory();
           }}
@@ -674,6 +830,19 @@ export function ZAssist() {
           className={`grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-[var(--rc-surface)] hover:text-[var(--rc-text)] ${historyOpen ? "bg-[var(--rc-surface)] text-[var(--rc-accent)]" : "text-[var(--rc-text-dim)]"}`}
         >
           <HistoryIcon className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTgOpen((v) => !v);
+            setHistoryOpen(false);
+            setTgError(null);
+          }}
+          title="Chat via your own Telegram bot"
+          aria-label="Pair your Telegram bot with Z-Assist"
+          className={`grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-[var(--rc-surface)] hover:text-[var(--rc-text)] ${tgOpen ? "bg-[var(--rc-surface)] text-[var(--rc-accent)]" : "text-[var(--rc-text-dim)]"}`}
+        >
+          <TelegramIcon className="h-4 w-4" />
         </button>
         <button
           type="button"
@@ -875,6 +1044,210 @@ export function ZAssist() {
                   </button>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {/* telegram pairing overlay */}
+        {tgOpen && (
+          <div className="zassist-in absolute inset-0 flex flex-col gap-3 overflow-y-auto bg-[var(--rc-bg)] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--rc-tone3)]">
+                your telegram bot · z-assist
+              </p>
+              <button
+                type="button"
+                onClick={() => setTgOpen(false)}
+                className="rounded-full border border-[var(--rc-border)] px-3 py-1 font-mono text-[10.5px] font-semibold text-[var(--rc-accent)] transition-colors hover:border-[var(--rc-accent)]"
+              >
+                done
+              </button>
+            </div>
+
+            <p className="text-[12.5px] leading-relaxed text-[var(--rc-text-dim)]">
+              Chat with Z-Assist <span className="text-[var(--rc-text)]">inside your own Telegram bot</span>. Create one
+              with <span className="font-mono text-[var(--rc-text)]">@BotFather</span> (free, 30 seconds), paste its
+              token here, then send the /start code it gives you. Answers are the same official-docs engine as this
+              chat.
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void pairTelegram();
+              }}
+              className="grid gap-1.5"
+            >
+              <div className="flex gap-2">
+                <input
+                  value={tgTokenInput}
+                  onChange={(e) => setTgTokenInput(e.target.value)}
+                  placeholder="123456789:AAExample…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="grow rounded-xl border border-[var(--rc-border)] bg-[var(--rc-surface)] px-3 py-2 font-mono text-[12px] text-[var(--rc-text)] outline-none placeholder:font-sans placeholder:text-[var(--rc-tone3)] focus:border-[var(--rc-accent)]"
+                />
+                <button
+                  type="submit"
+                  disabled={tgBusy || !tgTokenInput.trim()}
+                  className={`shrink-0 rounded-xl px-3.5 font-mono text-[11px] font-semibold transition-colors ${
+                    tgBusy || !tgTokenInput.trim()
+                      ? "cursor-not-allowed bg-[var(--rc-surface)] text-[var(--rc-tone3)]"
+                      : "bg-[var(--rc-accent)] text-[var(--rc-on-accent)] hover:opacity-90"
+                  }`}
+                >
+                  {tgBusy ? "…" : "pair"}
+                </button>
+              </div>
+              {tgError && <p className="text-[11.5px] leading-snug text-[var(--rc-gone)]">{tgError}</p>}
+            </form>
+
+            <div className="rounded-xl border border-[var(--rc-border)] bg-[var(--rc-surface)] px-3 py-2.5 text-[11.5px] leading-relaxed text-[var(--rc-text-dim)]">
+              <span className="font-semibold text-[var(--rc-text)]">{tgBots[0] ? `${tgBots[0].dailyLimit} questions a day` : "5 questions a day"} free on Telegram</span>{" "}
+              — when the daily 5 are spent the bot hands you a chat token, and the whole conversation continues
+              free &amp; unlimited right here on the website.
+            </div>
+
+            <div className="grid gap-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--rc-tone3)]">
+                your bots
+              </p>
+              {tgBots.length === 0 ? (
+                <p className="text-[12.5px] text-[var(--rc-text-dim)]">
+                  No bots paired yet — paste a token above to get started.
+                </p>
+              ) : (
+                tgBots.map((b) => (
+                  <div
+                    key={b.id}
+                    className="grid gap-2 rounded-xl border border-[var(--rc-border)] bg-[var(--rc-surface)] p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate font-mono text-[13px] font-bold text-[var(--rc-text)]">
+                        @{b.botUsername}
+                      </span>
+                      {b.status === "active" ? (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,#10b981_18%,var(--rc-surface))] px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-wide text-emerald-500">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          connected
+                        </span>
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,#f59e0b_16%,var(--rc-surface))] px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-wide text-amber-500">
+                          waiting /start
+                        </span>
+                      )}
+                    </div>
+
+                    {b.status === "pending" ? (
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-[var(--rc-border)] px-3 py-2">
+                          <span className="font-mono text-[17px] font-bold tracking-[0.18em] text-[var(--rc-bright)]">
+                            {b.pairCode}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void tgAction("code", b.id)}
+                            className="font-mono text-[10px] text-[var(--rc-tone3)] transition-colors hover:text-[var(--rc-accent)]"
+                          >
+                            new code
+                          </button>
+                        </div>
+                        <a
+                          href={b.deepLink}
+                          target="_blank"
+                          rel="noopener"
+                          className="rounded-xl bg-[var(--rc-accent)] px-3.5 py-2 text-center font-mono text-[11.5px] font-bold text-[var(--rc-on-accent)] transition-opacity hover:opacity-90"
+                        >
+                          open bot &amp; press START ↗
+                        </a>
+                        <p className="text-[11px] leading-snug text-[var(--rc-text-dim)]">
+                          The button sends <span className="font-mono">/start {b.pairCode}</span> for you — tap it in
+                          Telegram and this card turns green.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2">
+                        <p className="text-[11.5px] leading-snug text-[var(--rc-text-dim)]">
+                          Chat: <span className="text-[var(--rc-text)]">{b.ownerTitle ?? "private"}</span> ·{" "}
+                          <span className="font-semibold text-[var(--rc-text)]">
+                            {b.usedToday}/{b.dailyLimit} free today
+                          </span>{" "}
+                          · {b.totalReplies} answered
+                          {b.lastMessageAt
+                            ? ` · last ${new Date(b.lastMessageAt).toLocaleString([], {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}`
+                            : ""}
+                        </p>
+                        {b.conversationToken ? (
+                          <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--rc-border)] px-3 py-2">
+                            <span className="min-w-0">
+                              <span className="block font-mono text-[9.5px] uppercase tracking-[0.1em] text-[var(--rc-tone3)]">
+                                web chat token
+                              </span>
+                              <span className="font-mono text-[14px] font-bold tracking-[0.14em] text-[var(--rc-bright)]">
+                                {b.conversationToken}
+                              </span>
+                            </span>
+                            <span className="flex shrink-0 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => void copyTgToken(b.id, b.conversationToken as string)}
+                                className="rounded-lg bg-[var(--rc-accent)] px-2.5 py-1.5 font-mono text-[10px] font-bold text-[var(--rc-on-accent)] transition-opacity hover:opacity-90"
+                              >
+                                {tgCopiedId === b.id ? "copied ✓" : "copy"}
+                              </button>
+                              <a
+                                href={`/?token=${b.conversationToken}`}
+                                className="rounded-lg border border-[var(--rc-border)] px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[var(--rc-accent)] transition-colors hover:border-[var(--rc-accent)]"
+                              >
+                                open ↗
+                              </a>
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] leading-snug text-[var(--rc-text-dim)]">
+                            No thread yet — the web token appears after the first question.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {b.lastError && (
+                      <p className="text-[11px] leading-snug text-[var(--rc-gone)]">⚠ {b.lastError}</p>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[9.5px] text-[var(--rc-tone3)]">token {b.tokenTail}</span>
+                      <button
+                        type="button"
+                        onClick={() => void tgAction("unpair", b.id)}
+                        className="font-mono text-[10px] text-[var(--rc-tone3)] transition-colors hover:text-[var(--rc-gone)]"
+                      >
+                        unpair
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-auto grid gap-1 rounded-xl border border-[var(--rc-border)] bg-[var(--rc-surface)] px-3 py-2.5 font-mono text-[10.5px] leading-relaxed text-[var(--rc-text-dim)]">
+              <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--rc-tone3)]">
+                bot commands
+              </p>
+              <p>
+                <span className="text-[var(--rc-text)]">/status</span> live bonus-window radar ·{" "}
+                <span className="text-[var(--rc-text)]">/token</span> web chat token ·{" "}
+                <span className="text-[var(--rc-text)]">/reset</span> fresh thread
+              </p>
+              <p>
+                <span className="text-[var(--rc-text)]">/help</span> what it can do ·{" "}
+                <span className="text-[var(--rc-text)]">/stop</span> unpair &amp; forget this chat
+              </p>
             </div>
           </div>
         )}
