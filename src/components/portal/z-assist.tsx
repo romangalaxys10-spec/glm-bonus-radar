@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { useFreshAnnouncements } from "@/lib/use-fresh-announcements";
 
@@ -85,6 +86,71 @@ const SUGGESTIONS = [
 ];
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+/* --------------------------- reply action buttons -------------------------- */
+
+/** Languages offered in the per-reply translate menu. */
+const LANGUAGES: Array<{ label: string; name: string }> = [
+  { label: "English", name: "English" },
+  { label: "中文 (Chinese)", name: "Simplified Chinese" },
+  { label: "繁體中文 (Trad. Chinese)", name: "Traditional Chinese" },
+  { label: "Español (Spanish)", name: "Spanish" },
+  { label: "Français (French)", name: "French" },
+  { label: "Deutsch (German)", name: "German" },
+  { label: "日本語 (Japanese)", name: "Japanese" },
+  { label: "한국어 (Korean)", name: "Korean" },
+  { label: "Português (Portuguese)", name: "Portuguese" },
+  { label: "Русский (Russian)", name: "Russian" },
+  { label: "Italiano (Italian)", name: "Italian" },
+  { label: "العربية (Arabic)", name: "Arabic" },
+  { label: "हिन्दी (Hindi)", name: "Hindi" },
+  { label: "Türkçe (Turkish)", name: "Turkish" },
+  { label: "Tiếng Việt (Vietnamese)", name: "Vietnamese" },
+  { label: "ไทย (Thai)", name: "Thai" },
+  { label: "Bahasa Indonesia", name: "Indonesian" },
+  { label: "Filipino (Tagalog)", name: "Filipino" },
+  { label: "Polski (Polish)", name: "Polish" },
+  { label: "Українська (Ukrainian)", name: "Ukrainian" },
+  { label: "Nederlands (Dutch)", name: "Dutch" },
+  { label: "ქართული (Georgian)", name: "Georgian" },
+  { label: "Ελληνικά (Greek)", name: "Greek" },
+  { label: "Svenska (Swedish)", name: "Swedish" },
+  { label: "Română (Romanian)", name: "Romanian" },
+  { label: "Čeština (Czech)", name: "Czech" },
+];
+
+/** Cap the quoted reply inside elaborate/translate prompts. */
+const QUOTE_CAP = 1200;
+
+function quoteReply(content: string): string {
+  return content.length > QUOTE_CAP ? `${content.slice(0, QUOTE_CAP)}…` : content;
+}
+
+function buildElaboratePrompt(reply: string): string {
+  return [
+    "Elaborate on the reply below — your own earlier answer in this chat.",
+    "Go deeper: expand the reasoning, add concrete details, numbers and practical examples where they help.",
+    "Keep the same voice and formatting. Do not just repeat the original text.",
+    "",
+    '"""',
+    reply,
+    '"""',
+  ].join("\n");
+}
+
+function buildTranslatePrompt(language: string, reply: string): string {
+  return [
+    `Translate the reply below — your own earlier answer in this chat — into ${language}.`,
+    "Reply with ONLY the translation: same meaning, same structure, same markdown formatting and links, no commentary before or after.",
+    "",
+    '"""',
+    reply,
+    '"""',
+  ].join("\n");
+}
+
+const ACTION_BTN =
+  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] text-[var(--rc-tone3)] transition-colors hover:bg-[var(--rc-bg)] hover:text-[var(--rc-accent)] disabled:cursor-not-allowed disabled:opacity-40";
 
 function loadStored(): ChatMsg[] {
   try {
@@ -267,6 +333,41 @@ function TelegramIcon({ className }: { className?: string }) {
   );
 }
 
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <rect width="13" height="13" rx="2" ry="2" x="9" y="9" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function SparkleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="M12 2.5 14.4 9.6 21.5 12 14.4 14.4 12 21.5 9.6 14.4 2.5 12 9.6 9.6 12 2.5z" />
+    </svg>
+  );
+}
+
+function GlobeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 /* -------------------------- telegram pairing ----------------------------- */
 
 interface TgBot {
@@ -352,6 +453,13 @@ export function ZAssist() {
   const [tgBusy, setTgBusy] = useState(false);
   const [tgError, setTgError] = useState<string | null>(null);
   const [tgCopiedId, setTgCopiedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [translateFor, setTranslateFor] = useState<{
+    id: string;
+    left: number;
+    top?: number;
+    bottom?: number;
+  } | null>(null);
 
   /* mid-session announcement news — badge the teaser/launcher so the
      visitor notices the strip update and the assistant at the same time */
@@ -409,19 +517,25 @@ export function ZAssist() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, thinking, reveal, open]);
 
-  /* escape closes — overlays first, panel last */
+  /* escape closes — translate menu first, then overlays, panel last */
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (tgOpen) setTgOpen(false);
+        if (translateFor) setTranslateFor(null);
+        else if (tgOpen) setTgOpen(false);
         else if (historyOpen) setHistoryOpen(false);
         else setOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, tgOpen, historyOpen]);
+  }, [open, tgOpen, historyOpen, translateFor]);
+
+  /* closing the panel dismisses any open translate menu */
+  useEffect(() => {
+    if (!open) setTranslateFor(null);
+  }, [open]);
 
   const fetchHistory = useCallback(async () => {
     const tokens = loadTokenList();
@@ -482,16 +596,23 @@ export function ZAssist() {
   }, [openPanel]);
 
   const send = useCallback(
-    async (raw: string) => {
+    async (raw: string, bubbleText?: string) => {
       const content = raw.trim();
       if (!content || thinking) return;
       setInput("");
       if (inputRef.current) inputRef.current.style.height = "auto";
 
-      const userMsg: ChatMsg = { id: uid(), role: "user", content };
-      const historyForApi = [...messages, userMsg]
-        .filter((m) => !m.error)
-        .map((m) => ({ role: m.role, content: m.content }));
+      /* bubbleText keeps the visible bubble short when an action button
+         composes the prompt; the API always gets the full instruction. */
+      const userMsg: ChatMsg = {
+        id: uid(),
+        role: "user",
+        content: bubbleText?.trim() || content,
+      };
+      const historyForApi = [
+        ...messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content })),
+        { role: "user" as const, content },
+      ];
 
       setMessages((prev) => [...prev, userMsg]);
       setThinking(true);
@@ -612,6 +733,47 @@ export function ZAssist() {
       /* clipboard blocked */
     }
   }, [token]);
+
+  /* --- per-reply actions: copy / elaborate / translate --- */
+
+  const copyReply = useCallback(async (m: ChatMsg) => {
+    try {
+      await navigator.clipboard.writeText(m.content);
+      setCopiedId(m.id);
+      setTimeout(() => setCopiedId((cur) => (cur === m.id ? null : cur)), 1400);
+    } catch {
+      /* clipboard blocked */
+    }
+  }, []);
+
+  const elaborateReply = useCallback(
+    (m: ChatMsg) => {
+      void send(buildElaboratePrompt(quoteReply(m.content)), "Elaborate on this reply ↑");
+    },
+    [send],
+  );
+
+  const openTranslatePop = useCallback((m: ChatMsg, btn: HTMLElement) => {
+    const r = btn.getBoundingClientRect();
+    const POP_H = 240;
+    const openUp = r.top > POP_H + 8;
+    setTranslateFor({
+      id: m.id,
+      left: Math.max(8, Math.min(r.left, window.innerWidth - 216)),
+      ...(openUp ? { bottom: window.innerHeight - r.top + 6 } : { top: r.bottom + 6 }),
+    });
+  }, []);
+
+  const translateReply = useCallback(
+    (m: ChatMsg, language: string) => {
+      setTranslateFor(null);
+      void send(
+        buildTranslatePrompt(language, quoteReply(m.content)),
+        `Translate this reply to ${language} ↑`,
+      );
+    },
+    [send],
+  );
 
   /* --- one-click resume: /?token=ABC deep link (Telegram handoff lands here) --- */
   useEffect(() => {
@@ -872,7 +1034,11 @@ export function ZAssist() {
 
       {/* messages + history overlay */}
       <div className="relative grow overflow-hidden">
-        <div ref={scrollRef} className="zassist-scroll flex h-full flex-col gap-2.5 overflow-y-auto px-3.5 py-3.5">
+        <div
+          ref={scrollRef}
+          onScroll={() => setTranslateFor(null)}
+          className="zassist-scroll flex h-full flex-col gap-2.5 overflow-y-auto px-3.5 py-3.5"
+        >
         {visible.map((m) =>
           m.role === "user" ? (
             <div
@@ -902,6 +1068,40 @@ export function ZAssist() {
                 >
                   claim 10% OFF →
                 </a>
+              )}
+              {!m.error && reveal?.id !== m.id && (
+                <div className="mt-2 flex items-center gap-0.5 border-t border-[color-mix(in_srgb,var(--rc-border)_60%,transparent)] pt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => void copyReply(m)}
+                    className={ACTION_BTN}
+                    title="Copy this reply"
+                  >
+                    <CopyIcon className="h-3 w-3" />
+                    {copiedId === m.id ? "copied ✓" : "copy"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={thinking}
+                    onClick={() => elaborateReply(m)}
+                    className={ACTION_BTN}
+                    title="Ask Z-Assist to go deeper on this reply"
+                  >
+                    <SparkleIcon className="h-3 w-3" />
+                    elaborate
+                  </button>
+                  <button
+                    type="button"
+                    disabled={thinking}
+                    onClick={(e) => openTranslatePop(m, e.currentTarget)}
+                    className={`${ACTION_BTN} ${translateFor?.id === m.id ? "text-[var(--rc-accent)]" : ""}`}
+                    title="Translate this reply"
+                  >
+                    <GlobeIcon className="h-3 w-3" />
+                    translate
+                    <ChevronDownIcon className="h-2.5 w-2.5" />
+                  </button>
+                </div>
               )}
             </div>
           ),
@@ -1336,6 +1536,53 @@ export function ZAssist() {
           </a>
         </p>
       </div>
+
+      {/* translate language menu — portaled to <body>: the panel's entry
+          animation keeps a transform applied (fill-mode both), which makes the
+          panel the containing block and would trap position:fixed children */}
+      {translateFor &&
+        createPortal(
+          (() => {
+            const target = messages.find((x) => x.id === translateFor.id);
+            if (!target) return null;
+            return (
+              <>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label="Close translate menu"
+                  onClick={() => setTranslateFor(null)}
+                  className="fixed inset-0 z-[80] cursor-default"
+                />
+                <div
+                  style={{
+                    left: translateFor.left,
+                    top: translateFor.top,
+                    bottom: translateFor.bottom,
+                  }}
+                  className="zassist-in fixed z-[81] w-52 overflow-hidden rounded-xl border border-[var(--rc-border)] bg-[var(--rc-surface)] shadow-2xl"
+                >
+                  <p className="px-3 pb-1 pt-2 font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--rc-tone3)]">
+                    translate reply to
+                  </p>
+                  <div className="zassist-scroll max-h-56 overflow-y-auto pb-1.5">
+                    {LANGUAGES.map((l) => (
+                      <button
+                        key={l.name}
+                        type="button"
+                        onClick={() => translateReply(target, l.name)}
+                        className="block w-full px-3 py-1.5 text-left text-[12px] leading-snug text-[var(--rc-text)] transition-colors hover:bg-[color-mix(in_srgb,var(--rc-accent)_10%,var(--rc-surface))] hover:text-[var(--rc-accent)]"
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            );
+          })(),
+          document.body,
+        )}
     </div>
   );
 }
