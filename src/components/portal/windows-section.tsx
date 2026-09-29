@@ -152,7 +152,9 @@ function StatusCard({ state, now }: { state: WindowState; now: number | null }) 
 }
 
 /* ------------------------------------------------------------------ */
-/* Live table (desktop) — mirrors the reference tracker's signature look */
+/* Live table (desktop) — compact comparison ledger. The cards above    */
+/* carry the full detail; this table answers "what's on and when" in    */
+/* one glance, so every column is fixed-purpose and nothing squeezes.   */
 /* ------------------------------------------------------------------ */
 
 export function LiveTable() {
@@ -160,66 +162,111 @@ export function LiveTable() {
   const windows = useWindows();
   const states = evaluateAll(now ?? 0, windows);
 
+  const cellBase = "border-b border-[var(--rc-border)] px-3 py-3 align-middle";
+
   return (
     <div className="table-scroll hidden overflow-x-auto md:block">
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full min-w-[840px] border-collapse text-sm">
+        <caption className="sr-only">
+          Bonus windows: schedule, live status and countdown to the next change. All schedules evaluated in
+          Asia/Singapore time.
+        </caption>
         <thead>
           <tr>
-            {["vendor", "window", "description", "schedule", "local now", "active", "changes in", "event ends", "docs"].map(
-              (h, i) => (
-                <th
-                  key={h}
-                  className={`whitespace-nowrap border-b border-[var(--rc-border)] px-2.5 pb-2.5 pt-2 font-sans text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--rc-tone2)] ${
-                    i === 5 ? "text-center" : i === 6 ? "text-right" : "text-left"
-                  }`}
-                >
-                  {h}
-                </th>
-              ),
-            )}
+            <th className="w-[36%] min-w-[290px] border-b border-[var(--rc-border)] px-3 pb-2.5 pt-2 text-left font-sans text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--rc-tone2)]">
+              window
+            </th>
+            <th
+              title="Evaluated against Asia/Singapore time (SGT)"
+              className="min-w-[210px] border-b border-[var(--rc-border)] px-3 pb-2.5 pt-2 text-left font-sans text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--rc-tone2)]"
+            >
+              schedule
+            </th>
+            <th className="w-[108px] border-b border-[var(--rc-border)] px-3 pb-2.5 pt-2 text-center font-sans text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--rc-tone2)]">
+              status
+            </th>
+            <th className="w-[128px] border-b border-[var(--rc-border)] px-3 pb-2.5 pt-2 text-right font-sans text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--rc-tone2)]">
+              changes in
+            </th>
+            <th className="w-[48px] border-b border-[var(--rc-border)] px-3 pb-2.5 pt-2 text-right font-sans text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--rc-tone2)]">
+              <span className="sr-only">official docs</span>
+              <span aria-hidden>docs</span>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {states.map((s, row) => (
-            <tr key={s.def.id} className={`transition-colors hover:bg-[color-mix(in_srgb,var(--rc-bright)_5%,transparent)] ${row % 2 === 1 ? "bg-[var(--rc-surface)]" : ""}`}>
-              <td className="whitespace-nowrap border-b border-[var(--rc-border)] px-2.5 py-2.5 font-semibold text-[var(--rc-bright)]">
-                {s.def.vendor}
-              </td>
-              <td className="whitespace-nowrap border-b border-[var(--rc-border)] px-2.5 py-2.5 font-mono text-xs">
+          {states.map((s) => (
+            <tr
+              key={s.def.id}
+              className={`group transition-colors hover:bg-[color-mix(in_srgb,var(--rc-bright)_5%,transparent)] ${
+                s.active ? "bg-[color-mix(in_srgb,var(--rc-accent)_7%,transparent)]" : ""
+              }`}
+              style={s.active ? { boxShadow: "inset 3px 0 0 0 var(--rc-accent)" } : undefined}
+            >
+              {/* Window identity + purpose, stacked — the description gets a
+                  real home instead of collapsing into a skinny column. */}
+              <td className={cellBase}>
                 <WindowChip colorVar={s.def.colorVar}>{metricsWindowId(s.def.id)}</WindowChip>
+                <p
+                  className="mt-1 max-w-[380px] text-[12.5px] leading-snug text-[var(--rc-text-dim)] line-clamp-2"
+                  title={s.def.description}
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--rc-tone3)]">
+                    {s.def.vendor}
+                  </span>
+                  <span aria-hidden className="mx-1.5 text-[var(--rc-border)]">
+                    ·
+                  </span>
+                  {s.def.description}
+                </p>
               </td>
-              <td className="max-w-[320px] border-b border-[var(--rc-border)] px-2.5 py-2.5 text-[13px] text-[var(--rc-text-dim)]">
-                {s.def.description}
-              </td>
-              <td className="whitespace-nowrap border-b border-[var(--rc-border)] px-2.5 py-2.5 font-mono text-xs">
+
+              {/* Schedule wraps to two lines max; bounded events get their
+                  end date as a quiet sub-line instead of a 9th column. */}
+              <td className={`${cellBase} font-mono text-xs leading-5`}>
                 {s.def.scheduleText}
-              </td>
-              <td className="whitespace-nowrap border-b border-[var(--rc-border)] px-2.5 py-2.5 font-mono text-xs tnum">
-                {now == null ? "—" : formatSgtNow(now)}
-              </td>
-              <td className="border-b border-[var(--rc-border)] px-2.5 py-2.5 text-center">
-                <StatusPill on={s.active} label={s.active ? "active" : "inactive"} />
-              </td>
-              <td className="whitespace-nowrap border-b border-[var(--rc-border)] px-2.5 py-2.5 text-right font-mono text-xs tnum">
-                {now == null ? (
-                  "—"
-                ) : s.ended ? (
-                  <span className="text-[var(--rc-gone)]">over</span>
-                ) : (
-                  formatCountdown((s.transitionMs ?? now) - now)
+                {s.def.eventEndText && (
+                  <span className="mt-0.5 block text-[10.5px] text-[var(--rc-tone3)]">
+                    ends {s.def.eventEndText}
+                  </span>
                 )}
               </td>
-              <td className="whitespace-nowrap border-b border-[var(--rc-border)] px-2.5 py-2.5 font-mono text-xs">
-                {s.def.eventEndText ?? ""}
+
+              <td className={`${cellBase} text-center`}>
+                <StatusPill on={s.active} label={s.active ? "active" : "inactive"} />
               </td>
-              <td className="border-b border-[var(--rc-border)] px-2.5 py-2.5">
+
+              {/* Countdown + the SGT moment it flips to, so the number has
+                  context without consulting another column. */}
+              <td className={`${cellBase} text-right`}>
+                {now == null ? (
+                  <span className="font-mono text-xs tnum">—</span>
+                ) : s.ended ? (
+                  <span className="font-mono text-xs text-[var(--rc-gone)]">over</span>
+                ) : (
+                  <>
+                    <span className="font-mono text-xs tnum">
+                      {formatCountdown((s.transitionMs ?? now) - now)}
+                    </span>
+                    {s.transitionMs != null && (
+                      <span className="mt-0.5 block font-mono text-[10px] text-[var(--rc-text-dim)] tnum">
+                        at {formatSgtNow(s.transitionMs)}
+                      </span>
+                    )}
+                  </>
+                )}
+              </td>
+
+              <td className={`${cellBase} text-right`}>
                 <a
                   href={s.def.docsUrl}
                   target="_blank"
                   rel="noopener"
-                  className="whitespace-nowrap text-[var(--rc-accent)] underline decoration-dotted underline-offset-4 hover:text-[var(--rc-bright)]"
+                  aria-label={`Official docs for ${s.def.name}`}
+                  title="Official docs"
+                  className="inline-flex text-[var(--rc-accent)] underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--rc-bright)]"
                 >
-                  docs&nbsp;↗
+                  ↗
                 </a>
               </td>
             </tr>
