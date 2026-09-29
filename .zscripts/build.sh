@@ -61,8 +61,30 @@ if [ -n "$newest_src" ]; then
 fi
 
 # Pack the latest finished standalone build synchronously (the pipeline checks
-# for the artifact immediately after this script exits).
+# for the artifact immediately after this script exits). The artifact must be
+# a SELF-BOOTING app dir: the platform extracts it to /app/ and runs
+# `sh /app/start.sh` (FC CAExited on 2026-09-29 proved /app/start.sh is the
+# boot entry), then health-checks FC_CUSTOM_LISTEN_PORT within 120s.
 if [ -f "$STANDALONE/server.js" ] && [ -d "$STANDALONE/.next/static" ]; then
+  # a) boot entry — POSIX sh, must sit at the tar root
+  install -m 755 /home/z/my-project/.zscripts/start.sh "$STANDALONE/start.sh"
+
+  # b) SQLite DB with current data (prisma CLI is not in the standalone
+  #    bundle, so the schema cannot be pushed at boot — ship it ready)
+  mkdir -p "$STANDALONE/db"
+  cp -f /home/z/my-project/db/custom.db "$STANDALONE/db/custom.db"
+
+  # c) z-ai sdk config (SDK reads $cwd/.z-ai-config first)
+  if [ -r /etc/.z-ai-config ]; then
+    cp -f /etc/.z-ai-config "$STANDALONE/.z-ai-config"
+  else
+    printf '{"baseUrl": "https://internal-api.z.ai/v1", "apiKey": "Z.ai"}\n' > "$STANDALONE/.z-ai-config"
+  fi
+
+  # d) normalize the .env Next copies into standalone (it contains the sandbox
+  #    path; start.sh's export overrides it, but keep the file consistent too)
+  printf 'DATABASE_URL=file:/app/db/custom.db\n' > "$STANDALONE/.env"
+
   tar -czf "$OUT" -C "$STANDALONE" .
   echo "[build.sh] artifact ready: $OUT ($(du -h "$OUT" | cut -f1)) at $(date -u +%T)" >> "$LOG"
   exit 0
