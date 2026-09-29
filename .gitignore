@@ -61,7 +61,10 @@ server.log
 # local artifacts & scaffold
 /download/
 /tool-results/
-/.zscripts/
+# NOTE: /.zscripts/ was un-ignored on 2026-09-29 — the z.ai deploy pipeline
+# REQUIRES .zscripts/build.sh + dev.sh to exist in the workspace (deploy fails
+# with "build script execution failed" otherwise), so they must survive
+# snapshot/restore cycles → tracked in git.
 /examples/
 /mini-services/
 /tests/
