@@ -138,7 +138,7 @@ export default function Home() {
           <SectionHeader
             eyebrow="live status · ai-synced hourly"
             title="Bonus windows"
-            blurb="Toggle pills flip automatically as windows open and close. Countdowns tick every second; schedules are evaluated against Asia/Singapore time exactly as the official notices define them — and an AI bot re-verifies them against docs.z.ai every hour."
+            blurb="Status badges flip automatically as windows open and close. Countdowns tick every second; schedules are evaluated against Asia/Singapore time exactly as the official notices define them — and an AI bot re-verifies them against docs.z.ai every hour."
           />
           <div className="mb-4">
             <DataFreshnessBadge compact />

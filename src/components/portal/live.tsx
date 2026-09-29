@@ -41,25 +41,33 @@ export function useNow(): number | null {
 }
 
 /**
- * Display-only toggle pill mirroring the reference tracker: slides and
- * glows while the window is active.
+ * Display-only status badge: live dot + mono label. Deliberately NOT shaped
+ * like a switch — the old sliding toggle looked interactive and visitors
+ * kept trying to flip it. The dot glows while the window is active.
  */
-export function TogglePill({ on, label }: { on: boolean; label: string }) {
+export function StatusPill({ on, label }: { on: boolean; label: string }) {
   return (
     <span
       role="img"
       aria-label={label}
-      className={`relative inline-block h-[18px] w-[34px] shrink-0 rounded-full border align-middle transition-colors ${
+      title={label}
+      className={`inline-flex shrink-0 cursor-default select-none items-center gap-1.5 rounded-full border px-2.5 py-[3px] font-mono text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
         on
-          ? "tgl-on border-[var(--rc-accent)] bg-[color-mix(in_srgb,var(--rc-accent)_22%,transparent)]"
-          : "border-[var(--rc-border)] bg-[var(--rc-surface)]"
+          ? "border-[color-mix(in_srgb,var(--rc-accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--rc-accent)_10%,transparent)] text-[var(--rc-accent)]"
+          : "border-[var(--rc-border)] bg-[var(--rc-surface)] text-[var(--rc-text-dim)]"
       }`}
     >
-      <span
-        className={`absolute top-[2px] h-[12px] w-[12px] rounded-full transition-all ${
-          on ? "left-[18px] bg-[var(--rc-accent)]" : "left-[2px] bg-[var(--rc-text-dim)]"
-        }`}
-      />
+      <span aria-hidden className="relative flex h-1.5 w-1.5">
+        {on && (
+          <span className="tgl-on absolute inline-flex h-full w-full rounded-full bg-[var(--rc-accent)] opacity-60" />
+        )}
+        <span
+          className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
+            on ? "bg-[var(--rc-accent)]" : "bg-[var(--rc-text-dim)]"
+          }`}
+        />
+      </span>
+      {label}
     </span>
   );
 }

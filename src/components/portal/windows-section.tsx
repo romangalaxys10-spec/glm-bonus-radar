@@ -20,7 +20,7 @@ import {
 } from "@/lib/windows";
 import { useWindows } from "@/lib/dynamic-data";
 import { CountdownTimer } from "./countdown";
-import { TogglePill, WindowChip, useNow } from "./live";
+import { StatusPill, WindowChip, useNow } from "./live";
 
 /* ------------------------------------------------------------------ */
 /* Status cards — one per bonus window, live countdowns                */
@@ -66,7 +66,7 @@ function StatusCard({ state, now }: { state: WindowState; now: number | null }) 
           <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--rc-text-dim)]">{def.vendor}</p>
           <h3 className="font-display text-lg font-semibold leading-snug">{def.name}</h3>
         </div>
-        <TogglePill on={state.active} label={state.active ? "active now" : "inactive"} />
+        <StatusPill on={state.active} label={state.active ? "active now" : "inactive"} />
       </header>
 
       <p className="text-sm text-[var(--rc-text-dim)]">{def.description}</p>
@@ -198,7 +198,7 @@ export function LiveTable() {
                 {now == null ? "—" : formatSgtNow(now)}
               </td>
               <td className="border-b border-[var(--rc-border)] px-2.5 py-2.5 text-center">
-                <TogglePill on={s.active} label={s.active ? "active" : "inactive"} />
+                <StatusPill on={s.active} label={s.active ? "active" : "inactive"} />
               </td>
               <td className="whitespace-nowrap border-b border-[var(--rc-border)] px-2.5 py-2.5 text-right font-mono text-xs tnum">
                 {now == null ? (
@@ -362,7 +362,7 @@ export function GoldenStrip() {
             <h3 className="font-display text-lg font-semibold">
               {ended ? "Golden window closed" : open ? "Golden window is open right now" : "The golden window"}
             </h3>
-            <TogglePill on={open} label={open ? "golden window open" : "golden window closed"} />
+            <StatusPill on={open} label={open ? "golden window open" : "golden window closed"} />
           </div>
           <p className="mt-1 max-w-2xl text-sm text-[var(--rc-text-dim)]">
             {ended
