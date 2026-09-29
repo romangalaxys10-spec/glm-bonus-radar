@@ -48,17 +48,12 @@ echo "=== build request $(date -u +%FT%TZ) (invoker: $(id -un), pid $$) ===" >> 
 OUT="/tmp/build_fullstack_${BUILD_ID:-$(date +%s)}.tar.gz"
 STANDALONE=/home/z/my-project/.next/standalone
 
-# Freshness check: if source changed after the last finished build, kick a
-# detached rebuild (ships in the NEXT deploy call; this one packs what exists
-# because the pipeline cannot wait for a full build).
-newest_src=$(find src public prisma next.config.ts package.json -type f -newer "$STANDALONE/server.js" 2>/dev/null | head -1 || true)
-if [ -n "$newest_src" ]; then
-  echo "[build.sh] source newer than build (e.g. $newest_src) — kicking detached rebuild" >> "$LOG"
-  if ! pgrep -f "next build" > /dev/null 2>&1; then
-    ZBUILD_BG=1 setsid bash "$0" >> "$LOG" 2>&1 < /dev/null &
-    disown 2>/dev/null || true
-  fi
-fi
+# ORDER IS LOAD-BEARING: pack FIRST, kick rebuild AFTER.
+# Incident 2026-09-29 13:51: the freshness kick ran before the pack; the
+# detached `next build` wiped .next/standalone while tar was reading it, so
+# no artifact was produced and the deploy failed even though the code was
+# fine. Packing first guarantees every call that finds a complete standalone
+# ships it; the rebuild only affects the NEXT call.
 
 # Pack the latest finished standalone build synchronously (the pipeline checks
 # for the artifact immediately after this script exits). The artifact must be
@@ -87,6 +82,19 @@ if [ -f "$STANDALONE/server.js" ] && [ -d "$STANDALONE/.next/static" ]; then
 
   tar -czf "$OUT" -C "$STANDALONE" .
   echo "[build.sh] artifact ready: $OUT ($(du -h "$OUT" | cut -f1)) at $(date -u +%T)" >> "$LOG"
+
+  # Freshness check (AFTER packing — see the ORDER note above): if source
+  # changed after the last finished build, kick a detached rebuild so the
+  # NEXT deploy call ships the fresh code. This call ships what exists.
+  newest_src=$(find src public prisma next.config.ts package.json -type f -newer "$STANDALONE/server.js" 2>/dev/null | head -1 || true)
+  if [ -n "$newest_src" ]; then
+    echo "[build.sh] source newer than build (e.g. $newest_src) — kicking detached rebuild" >> "$LOG"
+    if ! pgrep -f "next build" > /dev/null 2>&1; then
+      ZBUILD_BG=1 setsid bash "$0" >> "$LOG" 2>&1 < /dev/null &
+      disown 2>/dev/null || true
+    fi
+  fi
+
   exit 0
 fi
 
