@@ -13,6 +13,7 @@ import { ZAssist, AskZAssistLink } from "@/components/portal/z-assist";
 import { NotifyEngine, NotificationsBell } from "@/components/portal/notifications-center";
 import { DataFreshnessBadge } from "@/components/portal/data-freshness";
 import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
+import { AiVpsBanner } from "@/components/portal/ai-vps-banner";
 import { INVITE_URL } from "@/lib/invite";
 import { LiveClocks } from "@/components/portal/live-clocks";
 
@@ -131,6 +132,7 @@ export default function Home() {
             <DataFreshnessBadge />
           </div>
           <AnnouncementsStrip />
+          <AiVpsBanner />
         </section>
 
         {/* Windows */}
@@ -298,6 +300,29 @@ export default function Home() {
 
       {/* Headless: browser notifications for opted-in event/announcement categories */}
       <NotifyEngine />
+
+      {/* SEO/GEO: machine-readable offer for the sponsor badge (paired with
+          the visible sponsored banner in the hero). Server-rendered so
+          crawlers and generative engines read it in the initial HTML. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: "xshredo AI VPS",
+            description:
+              "AI-tuned VPS hosting for running AI agents and inference workloads 24/7, priced for individual developers.",
+            brand: { "@type": "Brand", name: "xshredo" },
+            category: "Cloud Hosting",
+            offers: {
+              "@type": "Offer",
+              url: "https://xshredo.com/ai-vps",
+              availability: "https://schema.org/InStock",
+            },
+          }),
+        }}
+      />
     </div>
   );
 }
