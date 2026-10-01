@@ -15,6 +15,7 @@ import { DataFreshnessBadge } from "@/components/portal/data-freshness";
 import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
 import { AiVpsBanner } from "@/components/portal/ai-vps-banner";
 import { CnOpsSection } from "@/components/portal/cn-ops-section";
+import { ToolsSection } from "@/components/portal/tools-section";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { LiveClocks } from "@/components/portal/live-clocks";
 
@@ -25,6 +26,7 @@ const NAV = [
   { href: "#pricing", label: "pricing" },
   { href: "#plans", label: "plans" },
   { href: "#invite", label: "invite" },
+  { href: "#tools", label: "tools" },
 ];
 
 const GITHUB_REPO = "https://github.com/romangalaxys10-spec/glm-bonus-radar";
@@ -195,8 +197,18 @@ export default function Home() {
         </section>
 
         {/* Invite */}
-        <section id="invite" aria-label="Invite offer" className="scroll-mt-24">
+        <section id="invite" aria-label="Invite offer" className="scroll-mt-24 pb-14">
           <InviteSection />
+        </section>
+
+        {/* Useful tools */}
+        <section id="tools" aria-label="Useful tools" className="scroll-mt-24">
+          <SectionHeader
+            eyebrow="toolkit · by the same builder"
+            title="Useful tools"
+            blurb="Field-tested utilities and deep-dive write-ups from Rommark.Dev — the GitHub auto-push protocol that keeps agent work safe, the self-healing deploy kit that keeps this very portal online, and hands-on reviews of agent memory and multi-agent orchestration tooling."
+          />
+          <ToolsSection />
         </section>
       </main>
 
