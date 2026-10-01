@@ -14,7 +14,7 @@ import { NotifyEngine, NotificationsBell } from "@/components/portal/notificatio
 import { DataFreshnessBadge } from "@/components/portal/data-freshness";
 import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
 import { AiVpsBanner } from "@/components/portal/ai-vps-banner";
-import { INVITE_URL } from "@/lib/invite";
+import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { LiveClocks } from "@/components/portal/live-clocks";
 
 const NAV = [
@@ -69,7 +69,7 @@ export default function Home() {
         className="block bg-[var(--rc-accent)] px-4 py-2 text-center text-[13px] font-semibold text-[var(--rc-on-accent)] transition-opacity hover:opacity-90"
       >
         <span className="font-mono">10% OFF</span> your first GLM Coding subscription — invite token{" "}
-        <span className="font-mono underline decoration-dotted underline-offset-2">ROK78RJKNW</span> · claim here →
+        <span className="font-mono underline decoration-dotted underline-offset-2">{INVITE_CODE}</span> · claim here →
       </a>
 
       {/* Sticky header */}

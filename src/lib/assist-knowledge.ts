@@ -73,7 +73,7 @@ Vision: GLM-4.6V $0.3/$0.9; GLM-OCR $0.03/$0.03; GLM-4.6V-FlashX $0.04/$0.4; GLM
 Built-in tool: Web Search $0.01/use. Image: GLM-Image $0.015/image, CogView-4 $0.01/image. Video: CogVideoX-3 $0.2/video. Audio: GLM-ASR-2512 $0.03/MTok (~$0.0024/min). Agents: GLM Slide/Poster Agent (beta) $0.7/MTok; General-Purpose Translation $3/MTok; Popular Special Effects Video Templates $0.2/video.
 
 --- 7. INVITE CAMPAIGN ("Invite Friends, Get Credits") ---
-- Invited friends get a 10% INSTANT DISCOUNT on their FIRST GLM Coding subscription order when they register via a unique invitation link or code. Our community invite link: https://z.ai/subscribe?ic=ROK78RJKNW (invite code ROK78RJKNW).
+- Invited friends get a 10% INSTANT DISCOUNT on their FIRST GLM Coding subscription order when they register via a unique invitation link or code. Our community invite link: https://z.ai/subscribe?ic=R0K78RJKNW (invite code R0K78RJKNW).
 - Eligibility for the 10% discount: newly registered users, or existing users who have NEVER had a paid subscription. Once per user (per mobile/email). Applies only to the initial subscription order; renewals/upgrades/downgrades are NOT eligible. Cannot stack with other first-order discount campaigns. Stripe minimum: final payable after all discounts/credits must be >= $0.50, else discount may be adjusted.
 - Inviter rewards: for each valid friend, 10% of the friend's first-order Actual Payment Amount as Credits. Payout begins once 3 valid invites are reached (first 3 disbursed lump-sum, then immediate per friend). Every cumulative 30 valid friends -> one-time extra 10% of those 30 friends' total actual payments. No upper limit.
 - Valid invitation = friend registers via your link/code + is a new paying user + completes first GLM Coding subscription payment within 72 hours + order not refunded within 24 hours. Last valid touchpoint gets the reward.
@@ -98,7 +98,7 @@ Built-in tool: Web Search $0.01/use. Image: GLM-Image $0.015/image, CogView-4 $0
 - Usage revision notice: https://docs.z.ai/devpack/notice/usage-revision
 - Flash campaign notice: https://docs.z.ai/devpack/notice/event-glm-5.3-flash
 - Invite campaign rules: https://docs.z.ai/devpack/credit-campaign-rules
-- Subscribe (with our 10% OFF invite code): https://z.ai/subscribe?ic=ROK78RJKNW
+- Subscribe (with our 10% OFF invite code): https://z.ai/subscribe?ic=R0K78RJKNW
 === END KNOWLEDGE BASE ===
 `;
 
