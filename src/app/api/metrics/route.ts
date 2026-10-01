@@ -1,4 +1,5 @@
 import { BONUS_WINDOWS, METRICS_WINDOW_ID, evaluateAll } from "@/lib/windows";
+import { cnIsoDate, getChinaOps, holidayResumeMs, holidayStartMs } from "@/lib/cn-holidays";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,30 @@ export async function GET() {
     const id = METRICS_WINDOW_ID[s.def.id];
     const ratio = s.def.id === "flash-campaign" ? 0 : s.def.id === "flash-api-50" ? 0.5 : 1;
     lines.push(`bonus_inference_discount_ratio{vendor="${s.def.vendor}",window="${id}"} ${s.active ? ratio : 1}`);
+  }
+
+  // China ops calendar: 1 while a public holiday likely means reduced staff at
+  // China-based teams (z.ai included) — see the "China ops calendar" section.
+  const cn = getChinaOps(now);
+  lines.push(
+    "# HELP zhelp_china_ops_limited 1 while a China public holiday is in progress (reduced support/release pace at China-based teams).",
+    "# TYPE zhelp_china_ops_limited gauge",
+    `zhelp_china_ops_limited ${cn.active ? 1 : 0}`,
+    "# HELP zhelp_china_ops_resume_timestamp_seconds Epoch seconds when normal operations resume after the active holiday (0 when none active).",
+    "# TYPE zhelp_china_ops_resume_timestamp_seconds gauge",
+    `zhelp_china_ops_resume_timestamp_seconds ${cn.active && cn.resumeMs ? Math.round(cn.resumeMs / 1000) : 0}`,
+  );
+  if (cn.next) {
+    lines.push(
+      "# HELP zhelp_china_next_holiday_start_timestamp_seconds Epoch seconds when the next China public holiday starts.",
+      "# TYPE zhelp_china_next_holiday_start_timestamp_seconds gauge",
+      `zhelp_china_next_holiday_start_timestamp_seconds{holiday="${cn.next.id}"} ${Math.round(holidayStartMs(cn.next) / 1000)}`,
+    );
+  }
+  if (cn.active) {
+    lines.push(
+      `# source (china-ops/${cn.active.id}): State Council notice 国办发明电, holiday ${cn.active.start}..${cn.active.end}, resume ${cnIsoDate(holidayResumeMs(cn.active))} CST`,
+    );
   }
 
   lines.push("");

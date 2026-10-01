@@ -14,12 +14,14 @@ import { NotifyEngine, NotificationsBell } from "@/components/portal/notificatio
 import { DataFreshnessBadge } from "@/components/portal/data-freshness";
 import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
 import { AiVpsBanner } from "@/components/portal/ai-vps-banner";
+import { CnOpsSection } from "@/components/portal/cn-ops-section";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { LiveClocks } from "@/components/portal/live-clocks";
 
 const NAV = [
   { href: "#windows", label: "windows" },
   { href: "#timeline", label: "timeline" },
+  { href: "#cn-ops", label: "cn ops" },
   { href: "#pricing", label: "pricing" },
   { href: "#plans", label: "plans" },
   { href: "#invite", label: "invite" },
@@ -160,6 +162,16 @@ export default function Home() {
             blurb="The same 24 hours shown twice: once in schedule time (SGT), once in your local clock. Line up the bright segments and you never accidentally pay peak rates again."
           />
           <TimelineSection />
+        </section>
+
+        {/* China ops calendar */}
+        <section id="cn-ops" aria-label="China ops calendar" className="scroll-mt-24 pb-14">
+          <SectionHeader
+            eyebrow="planner · utc+8"
+            title="China ops calendar"
+            blurb="z.ai is built in Beijing — during China's public holidays (Golden Week, Spring Festival and friends) support replies, pricing updates and non-critical releases slow down across China-based companies. Plan heavy work and deadline-sensitive runs around these windows; the API itself stays up."
+          />
+          <CnOpsSection />
         </section>
 
         {/* Pricing */}
