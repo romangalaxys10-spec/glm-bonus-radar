@@ -16,10 +16,25 @@
 # inside the kill window. So builds happen DETACHED (double-fork orphan,
 # survives any pipeline kill) and are kept warm; this script packs the latest
 # finished standalone build synchronously and exits 0 fast.
+#
+# Incident 2026-10-01 07:14 (Task 29): the sandbox restarted ~07:06 and the
+# platform's bootstrap wiped untracked build state (.next/, build.log). Both
+# deploy clicks hit the old FATAL path which just exited 1 — no rebuild, no
+# recovery, so every subsequent deploy failed forever ("Sorry, there was a
+# problem deploying the code"). Two fixes below:
+#   A. PERSISTENT FALLBACK: every successful pack also stores the artifact at
+#      .zscripts/cache/last-good.tar.gz; a standalone-less call ships that
+#      (possibly slightly stale) instead of failing, and kicks a rebuild for
+#      freshness.
+#   B. SELF-HEAL: with no standalone AND no fallback, kick the detached
+#      rebuild and wait for it — pipeline kills us ~14s in (that click still
+#      fails), but the rebuild survives and the user's next click succeeds.
 set -e
 cd /home/z/my-project
 
 LOG=/home/z/my-project/.zscripts/build.log
+STANDALONE=/home/z/my-project/.next/standalone
+FALLBACK=/home/z/my-project/.zscripts/cache/last-good.tar.gz
 
 # Re-exec as z when invoked as root — keeps node_modules/.next ownership sane
 # so the z-user dev server can still write afterwards.
@@ -27,40 +42,17 @@ if [ "$(id -u)" = "0" ]; then
   exec su z -c "bash /home/z/my-project/.zscripts/build.sh"
 fi
 
-# ---------------- worker mode (detached background build) ----------------
-if [ "$ZBUILD_BG" = "1" ]; then
-  {
-    echo "[bg] === worker start $(date -u +%FT%TZ) (user $(id -un)) ==="
-    if bun install; then echo "[bg] install ok $(date -u +%T)"; else echo "[bg] INSTALL FAILED"; fi
-    if bun run db:push; then echo "[bg] db ok $(date -u +%T)"; else echo "[bg] DB PUSH FAILED"; fi
-    if bun run build; then
-      echo "[bg] BUILD OK $(date -u +%FT%TZ)"
-    else
-      echo "[bg] BUILD FAILED $(date -u +%FT%TZ) (previous standalone stays in place; inspect this log)"
-    fi
-  } >> "$LOG" 2>&1
-  exit 0
-fi
+mkdir -p "$(dirname "$FALLBACK")"
 
-# ---------------- pipeline mode (artifact must exist on exit) ----------------
-echo "=== build request $(date -u +%FT%TZ) (invoker: $(id -un), pid $$) ===" >> "$LOG"
+complete_standalone() {
+  [ -f "$STANDALONE/server.js" ] && [ -d "$STANDALONE/.next/static" ]
+}
 
-OUT="/tmp/build_fullstack_${BUILD_ID:-$(date +%s)}.tar.gz"
-STANDALONE=/home/z/my-project/.next/standalone
-
-# ORDER IS LOAD-BEARING: pack FIRST, kick rebuild AFTER.
-# Incident 2026-09-29 13:51: the freshness kick ran before the pack; the
-# detached `next build` wiped .next/standalone while tar was reading it, so
-# no artifact was produced and the deploy failed even though the code was
-# fine. Packing first guarantees every call that finds a complete standalone
-# ships it; the rebuild only affects the NEXT call.
-
-# Pack the latest finished standalone build synchronously (the pipeline checks
-# for the artifact immediately after this script exits). The artifact must be
-# a SELF-BOOTING app dir: the platform extracts it to /app/ and runs
-# `sh /app/start.sh` (FC CAExited on 2026-09-29 proved /app/start.sh is the
-# boot entry), then health-checks FC_CUSTOM_LISTEN_PORT within 120s.
-if [ -f "$STANDALONE/server.js" ] && [ -d "$STANDALONE/.next/static" ]; then
+# pack <target.tar.gz> — assemble the SELF-BOOTING app dir and tar it.
+# The platform extracts the artifact to /app/ and runs `sh /app/start.sh`
+# (FC CAExited on 2026-09-29 proved /app/start.sh is the boot entry), then
+# health-checks FC_CUSTOM_LISTEN_PORT within 120s.
+pack() {
   # a) boot entry — POSIX sh, must sit at the tar root
   install -m 755 /home/z/my-project/.zscripts/start.sh "$STANDALONE/start.sh"
 
@@ -80,7 +72,61 @@ if [ -f "$STANDALONE/server.js" ] && [ -d "$STANDALONE/.next/static" ]; then
   #    path; start.sh's export overrides it, but keep the file consistent too)
   printf 'DATABASE_URL=file:/app/db/custom.db\n' > "$STANDALONE/.env"
 
-  tar -czf "$OUT" -C "$STANDALONE" .
+  tar -czf "$1" -C "$STANDALONE" .
+}
+
+kick_rebuild() {
+  if ! pgrep -f "next build" > /dev/null 2>&1; then
+    ZBUILD_BG=1 setsid bash "$0" >> "$LOG" 2>&1 < /dev/null &
+    disown 2>/dev/null || true
+  fi
+}
+
+# refresh_fallback — atomically store <src.tar.gz> as the persistent fallback
+refresh_fallback() {
+  cp -f "$1" "$FALLBACK.tmp" && mv -f "$FALLBACK.tmp" "$FALLBACK"
+}
+
+# ---------------- worker mode (detached background build) ----------------
+if [ "$ZBUILD_BG" = "1" ]; then
+  {
+    echo "[bg] === worker start $(date -u +%FT%TZ) (user $(id -un)) ==="
+    if bun install; then echo "[bg] install ok $(date -u +%T)"; else echo "[bg] INSTALL FAILED"; fi
+    if bun run db:push; then echo "[bg] db ok $(date -u +%T)"; else echo "[bg] DB PUSH FAILED"; fi
+    if bun run build; then
+      echo "[bg] BUILD OK $(date -u +%FT%TZ)"
+      # keep the persistent fallback current so a future restart-wipe ships
+      # instantly on the first deploy click instead of erroring
+      if complete_standalone; then
+        if pack "$FALLBACK.tmp"; then
+          mv -f "$FALLBACK.tmp" "$FALLBACK"
+          echo "[bg] fallback artifact refreshed ($(du -h "$FALLBACK" | cut -f1))"
+        else
+          echo "[bg] FALLBACK PACK FAILED"
+        fi
+      fi
+    else
+      echo "[bg] BUILD FAILED $(date -u +%FT%TZ) (previous standalone stays in place; inspect this log)"
+    fi
+  } >> "$LOG" 2>&1
+  exit 0
+fi
+
+# ---------------- pipeline mode (artifact must exist on exit) ----------------
+echo "=== build request $(date -u +%FT%TZ) (invoker: $(id -un), pid $$) ===" >> "$LOG"
+
+OUT="/tmp/build_fullstack_${BUILD_ID:-$(date +%s)}.tar.gz"
+
+# ORDER IS LOAD-BEARING: pack FIRST, kick rebuild AFTER.
+# Incident 2026-09-29 13:51: the freshness kick ran before the pack; the
+# detached `next build` wiped .next/standalone while tar was reading it, so
+# no artifact was produced and the deploy failed even though the code was
+# fine. Packing first guarantees every call that finds a complete standalone
+# ships it; the rebuild only affects the NEXT call.
+
+if complete_standalone; then
+  pack "$OUT"
+  refresh_fallback "$OUT"
   echo "[build.sh] artifact ready: $OUT ($(du -h "$OUT" | cut -f1)) at $(date -u +%T)" >> "$LOG"
 
   # Freshness check (AFTER packing — see the ORDER note above): if source
@@ -89,14 +135,38 @@ if [ -f "$STANDALONE/server.js" ] && [ -d "$STANDALONE/.next/static" ]; then
   newest_src=$(find src public prisma next.config.ts package.json -type f -newer "$STANDALONE/server.js" 2>/dev/null | head -1 || true)
   if [ -n "$newest_src" ]; then
     echo "[build.sh] source newer than build (e.g. $newest_src) — kicking detached rebuild" >> "$LOG"
-    if ! pgrep -f "next build" > /dev/null 2>&1; then
-      ZBUILD_BG=1 setsid bash "$0" >> "$LOG" 2>&1 < /dev/null &
-      disown 2>/dev/null || true
-    fi
+    kick_rebuild
   fi
 
   exit 0
 fi
 
-echo "[build.sh] FATAL: no finished standalone build to pack" >> "$LOG"
+# -------- self-heal: restart/bootstrap wiped .next (incident 2026-10-01) --------
+if [ -f "$FALLBACK" ]; then
+  echo "[build.sh] standalone missing — shipping persistent fallback ($(du -h "$FALLBACK" | cut -f1), code as of its pack time)" >> "$LOG"
+  cp -f "$FALLBACK" "$OUT"
+  # the fallback may be stale vs current source — rebuild unconditionally
+  echo "[build.sh] kicking detached rebuild to restore fresh standalone" >> "$LOG"
+  kick_rebuild
+  exit 0
+fi
+
+# Last resort: no standalone, no fallback. Kick the rebuild (survives the
+# pipeline kill) and wait — if this environment lets us run long enough we
+# can still finish; if the pipeline kills us, the next deploy click works.
+echo "[build.sh] standalone AND fallback missing — self-heal: rebuild + wait" >> "$LOG"
+kick_rebuild
+i=0
+while [ "$i" -lt 300 ]; do
+  if complete_standalone; then
+    pack "$OUT"
+    refresh_fallback "$OUT"
+    echo "[build.sh] self-healed: artifact ready after $((i * 2))s wait: $OUT ($(du -h "$OUT" | cut -f1))" >> "$LOG"
+    exit 0
+  fi
+  sleep 2
+  i=$((i + 1))
+done
+
+echo "[build.sh] FATAL: no standalone and no fallback, rebuild did not finish in wait window" >> "$LOG"
 exit 1
