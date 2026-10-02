@@ -22,11 +22,16 @@ function decodeSubject(s: string): string {
 
 export async function GET() {
   const glm = ["mailserver", "mailboxes", "glm", "Maildir"];
+  // ORDER MATTERS (Task 42): the live operator mailbox wins over a build-time
+  // copy — Next's standalone output can contain a STALE mailserver/ snapshot
+  // copied from the project root at build time, so process.cwd() may point at
+  // a frozen Maildir. In the FC container /home/z/my-project does not exist
+  // and cwd IS the shipped copy (/app/mailserver) — still correct.
   const candidates = [
     process.env.MAILBOX_DIR,
+    ["/home/z/my-project", ...glm].join("/"),
     join(process.cwd(), ...glm),
     join(process.cwd(), "..", ...glm),
-    ["/home/z/my-project", ...glm].join("/"),
   ].filter(Boolean) as string[];
   const dir = candidates.find((p) => existsSync(p));
   if (!dir)

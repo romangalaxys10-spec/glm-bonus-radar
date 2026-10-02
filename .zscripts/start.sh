@@ -42,7 +42,24 @@ export NODE_ENV=production
 export PORT="${FC_CUSTOM_LISTEN_PORT:-81}"
 export HOSTNAME=0.0.0.0
 
-# 4. Serve. node v24 is present in the image; bun as a fallback.
+# 4. GLM mail server (Task 42, 2026-10-03): zero-dependency Node MTA on
+#    127.0.0.1:2525 so /api/notify/email works on this host. Best effort —
+#    a mail failure must never block the portal boot (background + || true).
+#    Same code path as the sandbox (mailserver/mailserver.mjs, no python).
+if [ -f "$APP_DIR/mailserver/mailserver.mjs" ]; then
+  mkdir -p "$APP_DIR/mailserver/logs" \
+           "$APP_DIR/mailserver/spool/outbound/queue" \
+           "$APP_DIR/mailserver/spool/outbound/deferred" \
+           "$APP_DIR/mailserver/spool/outbound/sent" \
+           "$APP_DIR/mailserver/mailboxes/glm/Maildir/new" \
+           "$APP_DIR/mailserver/mailboxes/glm/Maildir/cur" \
+           "$APP_DIR/mailserver/mailboxes/glm/Maildir/tmp" || true
+  chmod -R a+rwX "$APP_DIR/mailserver" 2>/dev/null || true
+  MAILSERVER_DIR="$APP_DIR/mailserver" node "$APP_DIR/mailserver/mailserver.mjs" \
+    >> "$APP_DIR/mailserver/logs/server.log" 2>&1 &
+fi
+
+# 5. Serve. node v24 is present in the image; bun as a fallback.
 if command -v node > /dev/null 2>&1; then
   exec node server.js
 else

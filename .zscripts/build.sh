@@ -85,6 +85,17 @@ pack() {
     printf '{"baseUrl": "https://internal-api.z.ai/v1", "apiKey": "Z.ai"}\n' > "$STANDALONE/.z-ai-config"
   fi
 
+  # c2) GLM mail server (Task 42, 2026-10-03): ships IN the artifact so the
+  #     FC container boots its own MTA on 127.0.0.1:2525 (start.sh step 4).
+  #     Zero-dep node server, shipped with PRISTINE runtime state.
+  rm -rf "$STANDALONE/mailserver"
+  cp -a /home/z/my-project/mailserver "$STANDALONE/mailserver"
+  rm -rf "$STANDALONE/mailserver/logs" "$STANDALONE/mailserver/server.pid"
+  # pristine runtime state (same per-deploy reset contract as the shipped DB):
+  # mailboxes + spool ship as EMPTY dirs, recreated by start.sh / the MTA.
+  find "$STANDALONE/mailserver/mailboxes" -type f -delete 2>/dev/null || true
+  find "$STANDALONE/mailserver/spool" -type f -delete 2>/dev/null || true
+
   # d) normalize the .env Next copies into standalone (it contains the sandbox
   #    path; start.sh's export overrides it, but keep the file consistent too)
   printf 'DATABASE_URL=file:/app/db/custom.db\n' > "$STANDALONE/.env"
@@ -92,9 +103,10 @@ pack() {
   # e) tar + gzip -1 (measured 2026-10-02: gzip -6 of ~640MB raw took 18s —
   #    outside the pipeline window; -1 takes ~7s. Junk Next copies from the
   #    project root (skills/ 61M, download/, src/, ...) is excluded — runtime
-  #    never reads it. Artifact with browser: ~176MB (the 207MB artifact
+  #    never reads it. mailserver/ IS staged above (c2) and its logs excluded.
+  #    Artifact with browser: ~176MB (the 207MB artifact
   #    already shipped fine on 2026-10-02 14:48).
-  EXCL="--exclude=./skills --exclude=./download --exclude=./upload --exclude=./tool-results --exclude=./zai-hosting-patcher --exclude=./mailserver --exclude=./scripts --exclude=./src --exclude=./dev.log --exclude=./worklog.md --exclude=./tsconfig.tsbuildinfo --exclude=./Caddyfile --exclude=./bun.lock --exclude=./eslint.config.mjs --exclude=./components.json --exclude=./postcss.config.mjs --exclude=./tailwind.config.ts"
+  EXCL="--exclude=./skills --exclude=./download --exclude=./upload --exclude=./tool-results --exclude=./zai-hosting-patcher --exclude=./mailserver/logs --exclude=./scripts --exclude=./src --exclude=./dev.log --exclude=./worklog.md --exclude=./tsconfig.tsbuildinfo --exclude=./Caddyfile --exclude=./bun.lock --exclude=./eslint.config.mjs --exclude=./components.json --exclude=./postcss.config.mjs --exclude=./tailwind.config.ts"
   tar -c $EXCL -C "$STANDALONE" . | gzip -1 > "$1"
 }
 

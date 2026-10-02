@@ -14,6 +14,12 @@ bun install
 echo "[dev.sh] push database schema"
 bun run db:push
 
+# GLM mail server (:2525) — Task 42: sandbox resets kill processes, so the
+# dev boot (re)starts the zero-dep Node MTA; idempotent via SMTP probe.
+echo "[dev.sh] starting mail server (:2525)"
+bash /home/z/my-project/mailserver/start.sh \
+  || echo "[dev.sh] mail server start failed — /api/notify/email will 503"
+
 echo "[dev.sh] starting dev server"
 bun run dev &
 

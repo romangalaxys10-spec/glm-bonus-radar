@@ -1,8 +1,25 @@
 # GLM Mail Server — zhelp.space-z.ai
 
 Self-contained user-space mail stack for the domain **zhelp.space-z.ai**,
-running inside the z.ai hosting sandbox as a plain Python process
-(no root available: services bind :2525, not :25).
+running as a plain user-space process (no root: services bind :2525, not :25).
+
+## Two runtimes, one MTA (Task 42, 2026-10-03)
+
+The portal serves from TWO hosts: this sandbox (dev) and the platform FC
+container (production, /app). Python/pip state does not survive sandbox
+resets and is not guaranteed in the FC image — so the MTA that SHIPS is the
+zero-dependency **Node edition (`mailserver.mjs`)**, started by
+`mailserver/start.sh` (sandbox) and by `.zscripts/start.sh` step 4 (FC boot,
+background, best-effort). `build.sh` packs `mailserver/` into the deploy
+artifact with PRISTINE mailboxes/spool (per-deploy reset, same contract as
+the shipped SQLite DB). The inbox route reads `/home/z/my-project/mailserver`
+(sandbox) or `cwd()/mailserver` (FC) — candidate order matters, see the
+comment in src/app/api/notify/inbox/route.ts.
+
+The Python stack below remains the sandbox tooling: `outbound.py` /
+`mailctl.py` still own the smarthost flush (direct-MX is firewall-blocked;
+see "Sending" below) and read the same Maildir + spool formats the Node MTA
+writes — `mailctl.py status|list|read|flush` works against both.
 
 ```
 mailserver/
