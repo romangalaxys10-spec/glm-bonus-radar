@@ -5,9 +5,9 @@ import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { GitHubMark } from "@/components/portal/scanner-icons";
 
 export const metadata: Metadata = {
-  title: "zScanner — free online Security, SEO/GEO/Performance, QA and Code scanners",
+  title: "zScanner — free online Security, SEO/GEO/Performance, QA and Code scanners (URL or GitHub repo)",
   description:
-    "Four instant scanners with live progress + ETA: Security Audit (headers, CORS, exposure probes, leaked secrets), SEO/GEO/Performance audit (titles, structured data, llms.txt, AI-crawler policy, TTFB), a QA reliability audit and a heuristic Code Reviewer. Every report ends with a copy-paste fix prompt for your dev agent. No signup.",
+    "Four instant scanners with live progress + ETA, for websites OR GitHub repos (private repos via an in-memory-only token): Security Audit (headers, CORS, exposure probes, leaked secrets), SEO/GEO/Performance audit (titles, structured data, llms.txt, AI-crawler policy, TTFB), a QA reliability audit and a heuristic Code Reviewer. Findings are re-verified before reporting, and every report ends with a copy-paste fix prompt for your dev agent. No signup.",
   alternates: { canonical: "/scanner" },
 };
 
@@ -74,10 +74,13 @@ export default function ScannerPage() {
             The scanner suite behind the GLM Bonus Radar, opened up. Audit a URL&apos;s security posture (headers, CORS,
             exposed dotfiles, leaked secrets), measure how findable a page is by search engines <em>and</em> generative
             engines — now with the performance layer (TTFB, payload, render-blocking) — run a QA reliability audit, or
-            review pasted code heuristically. Scans run as tracked jobs with a live progress bar and ETA, and every
-            report ends with a strong copy-paste fix prompt for your dev agent. Rule sets adapted from
-            securityheaders/OWASP, current GEO checklists, Semgrep/Bandit-style analysis, fable&apos;s sec-scan, Cloudflare&apos;s
-            security-audit-skill and awesome-skills&apos; code-review-skill.
+            review pasted code heuristically. Every scanner accepts a website/IP <em>or</em> a GitHub repo — public
+            ones anonymously, private ones with your token, which is used in memory for the scan only and never
+            stored. Findings pass a verification layer (re-probes, 404 baselines, a second GitHub channel for critical
+            secrets, stable-UID dedup) before they reach you, and every report ends with a strong copy-paste fix
+            prompt for your dev agent. Rule sets adapted from securityheaders/OWASP, current GEO checklists,
+            Semgrep/Bandit-style analysis, fable&apos;s sec-scan, Cloudflare&apos;s security-audit-skill and awesome-skills&apos;
+            code-review-skill.
           </p>
         </section>
 
@@ -91,22 +94,22 @@ export default function ScannerPage() {
               {
                 id: "01",
                 t: "Security Audit",
-                d: "Transport, HSTS, CSP deep-lint, clickjacking, cookies, Permissions-Policy, CORS reflection, server-version disclosure, 404-baseline dotfile probes (.env, .git), secrets in served HTML and stack-trace leaks — Cloudflare-doctrine severity: exposures are findings, header gaps are hardening, suspicions are leads.",
+                d: "For a URL or a GitHub repo. Websites: transport, HSTS, CSP deep-lint, clickjacking, cookies, Permissions-Policy, CORS reflection, server-version disclosure, 404-baseline dotfile probes (.env, .git), secrets in served HTML, stack-trace leaks. Repos: committed .env/key files, secret-shaped lines in a risk-ranked file sample, dangerous pull_request_target workflows, dependency floors from package.json & requirements.txt — Cloudflare-doctrine severity: exposures are findings, gaps are hardening, suspicions are leads.",
               },
               {
                 id: "02",
                 t: "SEO · GEO · Performance",
-                d: "On-page SEO (title, description, canonical, OG, headings, keyword density, internal links), the generative-engine layer (robots.txt AI-crawler policy for 14 bots, llms.txt, JSON-LD, authority, citation readiness, entity coverage) and performance (TTFB, HTML weight, images, lazy-loading, render-blocking scripts, compression) — with a four-pillar breakdown, linker-style.",
+                d: "For a URL or a GitHub repo. Websites: on-page SEO (title, description, canonical, OG, headings, keyword density, internal links), the generative-engine layer (robots.txt AI-crawler policy for 14 bots, llms.txt, JSON-LD, authority, citation readiness, entity coverage) and performance (TTFB, HTML weight, images, lazy-loading, render-blocking scripts, compression). Repos: discoverability (description, topics, homepage), README clarity for humans and AI, freshness, licensing — with pillar breakdowns, linker-style.",
               },
               {
                 id: "03",
                 t: "QA Audit",
-                d: "Reliability & robustness from fable's methodology: availability and response time, doctype/charset/lang/favicon hygiene, internal-link probing with a 404 baseline (soft-404 aware), insecure references, stack-trace leakage, deprecated tags — with an ok / needs-review / blocked verdict.",
+                d: "For a URL or a GitHub repo. Websites: availability and response time, doctype/charset/lang/favicon hygiene, internal-link probing with a 404 baseline (soft-404 aware), insecure references, stack-trace leakage, deprecated tags. Repos: test suite presence, CI workflows (and whether they run tests), lint/format configs, tsconfig strictness, README/CONTRIBUTING/SECURITY/LICENSE hygiene — with an ok / needs-review / blocked verdict.",
               },
               {
                 id: "04",
                 t: "Code Reviewer",
-                d: "Paste up to 256 KB of JS/TS/Python: secrets (AWS/GitHub/Slack/Google/PEM/JWT), eval/pickle/shell sinks, SQL concatenation, jwt.decode, framework raw-HTML escape hatches, CORS wildcards, weak hashes, dependency floors from package.json & requirements.txt — plus a strengths-first report per awesome-skills' review format.",
+                d: "Paste up to 256 KB of JS/TS/Python, or scan a GitHub repo (public anonymously, private with your in-memory token): secrets (AWS/GitHub/Slack/Google/PEM/JWT), eval/pickle/shell sinks, SQL concatenation, jwt.decode, framework raw-HTML escape hatches, CORS wildcards, weak hashes, dependency floors from manifests — findings cite path:line from a risk-ranked file sample, with a verification pass and a strengths-first report per awesome-skills' review format.",
               },
             ].map((c) => (
               <div key={c.id} className="rounded-2xl border border-[var(--rc-border)] bg-[var(--rc-surface)] p-5">

@@ -14,6 +14,7 @@
 
 import { guardedGet, plausibleTarget, ScanError } from "./fetcher";
 import { type Finding, type Inconclusive, type UrlScanReport, scoreFindings } from "./types";
+import { dedupeFindings, tag, verificationBlock } from "./verify";
 
 const AI_CRAWLERS: [token: string, label: string][] = [
   ["GPTBot", "OpenAI (ChatGPT)"],
@@ -436,9 +437,11 @@ export async function runGeoSeoScan(
     findings.push({ id: "geo-llms-ref", severity: "info", title: "No llms.txt reference in HTML", detail: "Linking /llms.txt from the page helps AI agents discover it." });
 
   progress(2, 0.4, "scoring");
-  const passFindings = findings.filter((f) => f.severity === "pass");
-  const highCount = findings.filter((f) => f.severity === "critical" || f.severity === "high").length;
-  const summary = `${highCount} high-impact issue(s), ${findings.length - passFindings.length} actionable in total, across on-page SEO, GEO readiness and performance.`;
+  tag(findings, "presence"); // every geoseo finding reflects the fetched response
+  const dedup = dedupeFindings(findings);
+  const passFindings = dedup.findings.filter((f) => f.severity === "pass");
+  const highCount = dedup.findings.filter((f) => f.severity === "critical" || f.severity === "high").length;
+  const summary = `${highCount} high-impact issue(s), ${dedup.findings.length - passFindings.length} actionable in total, across on-page SEO, GEO readiness and performance.`;
 
   const breakdown = [
     { label: "SEO on-page", ids: ["geo-status", "seo-title", "seo-desc", "seo-canonical", "seo-viewport", "seo-lang", "seo-robots-meta", "seo-h1", "seo-h2", "seo-alt", "seo-og", "seo-links", "seo-keywords"] },
@@ -446,10 +449,10 @@ export async function runGeoSeoScan(
     { label: "GEO readiness", ids: ["geo-jsonld", "geo-robots", "geo-llms", "geo-authority", "geo-citation", "geo-entity", "seo-sitemap"] },
     { label: "Performance", ids: ["perf-size", "perf-ttfb", "perf-imgs", "perf-lazy", "perf-blocking", "perf-compression"] },
   ]
-    .map((p) => ({ label: p.label, score: pillarScore(p.ids, findings) }))
+    .map((p) => ({ label: p.label, score: pillarScore(p.ids, dedup.findings) }))
     .filter((p): p is { label: string; score: number } => p.score !== null);
 
-  const { score, grade } = scoreFindings(findings);
+  const { score, grade } = scoreFindings(dedup.findings);
   return {
     scanner: "geo-seo",
     target,
@@ -462,7 +465,8 @@ export async function runGeoSeoScan(
     summary,
     breakdown,
     positives: passFindings.slice(0, 6).map((f) => f.title),
-    findings,
+    findings: dedup.findings,
     inconclusive: inconclusive.length ? inconclusive : undefined,
+    verification: verificationBlock(dedup.findings, dedup.deduped, { tokenUsed: false }),
   };
 }

@@ -24,7 +24,8 @@ function findingsJson(findings: Finding[], cap = 40): string {
 
 function header(kind: string, target: string, score: number, grade: string, verdict?: string): string {
   const tail = verdict ? ` · verdict: ${verdict}` : "";
-  return `You are a senior engineer fixing the findings of a zScanner ${kind} audit of ${target} — score ${score}/100, grade ${grade}${tail}. Today's date: ${new Date().toISOString().slice(0, 10)}.`;
+  const repo = /github\.com\//.test(target) ? " The target is a git repository — findings cite file paths (path:line where available); open each file before editing." : "";
+  return `You are a senior engineer fixing the findings of a zScanner ${kind} audit of ${target} — score ${score}/100, grade ${grade}${tail}. Today's date: ${new Date().toISOString().slice(0, 10)}.${repo}`;
 }
 
 function securityPrompt(r: UrlScanReport): string {
@@ -97,7 +98,8 @@ ${r.positives?.length ? `Already healthy (do not touch): ${r.positives.join("; "
 }
 
 function codePrompt(r: CodeScanReport): string {
-  return `${header("Code review", `pasted ${r.language} snippet (${r.linesScanned} lines)`, r.score, r.grade)}
+  const isRepo = r.target !== "pasted-source";
+  return `${header("Code review", isRepo ? `${r.target} — repo mode (${r.linesScanned} lines across ${r.verification?.filesAnalyzed ?? "?"} files)` : `pasted ${r.language} snippet (${r.linesScanned} lines)`, r.score, r.grade)}
 
 Apply PR-review discipline to the findings below:
 1. Acknowledge what is already solid first (structure, naming, tests) — then findings.

@@ -12,11 +12,12 @@
  */
 
 import { type CodeScanReport, type Finding, scoreFindings } from "./types";
+import { dedupeFindings, tag, verificationBlock } from "./verify";
 
 const MAX_BYTES = 256 * 1024;
 const MAX_LINES = 5000;
 
-type LineRule = {
+export type LineRule = {
   id: string;
   severity: Finding["severity"];
   title: string;
@@ -312,7 +313,7 @@ const PYTHON: LineRule[] = [
   },
 ];
 
-const AGGREGATES: { id: string; severity: Finding["severity"]; title: string; re: RegExp; threshold: number; detail: (n: number) => string; fix?: string }[] = [
+export const AGGREGATES: { id: string; severity: Finding["severity"]; title: string; re: RegExp; threshold: number; detail: (n: number) => string; fix?: string }[] = [
   {
     id: "dbg-prints",
     severity: "low",
@@ -375,7 +376,7 @@ function semverLess(a: number[], b: [number, number, number]): boolean {
   return false;
 }
 
-function dependencyFindings(code: string): Finding[] {
+export function dependencyFindings(code: string): Finding[] {
   const out: Finding[] = [];
   const isNpm = /"(?:dependencies|devDependencies)"\s*:\s*\{/.test(code);
   const isPypi = /^\s*(?:[A-Za-z0-9_.-]+)(?:==|>=|~=)\d/m.test(code) && /(?:django|flask|requests|pillow)/i.test(code);
@@ -402,7 +403,7 @@ function dependencyFindings(code: string): Finding[] {
   return out;
 }
 
-function detectLanguage(code: string): string {
+export function detectLanguage(code: string): string {
   const py = (code.match(/\bdef\s+\w+\s*\(|\bimport\s+\w+|\bfrom\s+\w+\s+import|\bself\b|\belif\b/g) ?? []).length;
   const ts = (code.match(/:\s*(?:string|number|boolean|any|void)\b|\binterface\s+\w+|<[A-Z]\w*>(?=\()|\bimplements\s+/g) ?? []).length;
   const js = (code.match(/\b(?:const|let|var)\s+\w+|=>|console\.|\bfunction\s+\w+|\brequire\s*\(|import\s+.*\bfrom\b/g) ?? []).length;
@@ -413,22 +414,20 @@ function detectLanguage(code: string): string {
   return "unknown";
 }
 
-function lineRulesFor(lang: string): LineRule[] {
+export function lineRulesFor(lang: string): LineRule[] {
   const pack = lang === "python" ? PYTHON : lang === "javascript" || lang === "typescript" ? JS_TS : [];
   return [...SECRET_LINE_RULES, ...pack];
 }
 
-export function reviewCode(code: string): Omit<CodeScanReport, "durationMs" | "cached" | "scannedAt" | "target"> {
-  const language = detectLanguage(code);
-  const lines = code.slice(0, MAX_BYTES).split(/\r?\n/).slice(0, MAX_LINES);
-  const rules = lineRulesFor(language);
+/** Apply line rules with per-rule evidence caps (max 3 lines each). */
+export function applyRules(lines: string[], rules: LineRule[]): Finding[] {
   const findings: Finding[] = [];
   const fired = new Map<string, Set<number>>(); // rule id -> lines
 
   lines.forEach((line, idx) => {
     const no = idx + 1;
     for (const rule of rules) {
-      if (rule.severity === "info") continue; // aggregates handled below
+      if (rule.severity === "info") continue; // aggregates handled separately
       rule.re.lastIndex = 0;
       if (!rule.re.test(line)) continue;
       if (rule.unless && rule.unless.test(line)) continue;
@@ -452,14 +451,29 @@ export function reviewCode(code: string): Omit<CodeScanReport, "durationMs" | "c
     }
   });
 
-  const joined = code.slice(0, MAX_BYTES);
+  return findings;
+}
+
+/** Density aggregates (debug output, TODO markers, var, dead code…). */
+export function applyAggregates(code: string): Finding[] {
+  const out: Finding[] = [];
   for (const agg of AGGREGATES) {
-    const n = (joined.match(new RegExp(agg.re.source, agg.re.flags.includes("g") ? agg.re.flags : agg.re.flags + "g")) ?? []).length;
+    const n = (code.match(new RegExp(agg.re.source, agg.re.flags.includes("g") ? agg.re.flags : agg.re.flags + "g")) ?? []).length;
     if (n >= agg.threshold) {
-      findings.push({ id: agg.id, severity: agg.severity, title: agg.title, detail: agg.detail(n), fix: agg.fix });
+      out.push({ id: agg.id, severity: agg.severity, title: agg.title, detail: agg.detail(n), fix: agg.fix });
     }
   }
+  return out;
+}
 
+export function reviewCode(code: string): Omit<CodeScanReport, "durationMs" | "cached" | "scannedAt" | "target"> {
+  const language = detectLanguage(code);
+  const lines = code.slice(0, MAX_BYTES).split(/\r?\n/).slice(0, MAX_LINES);
+  const rules = lineRulesFor(language);
+  const findings: Finding[] = applyRules(lines, rules);
+
+  const joined = code.slice(0, MAX_BYTES);
+  findings.push(...applyAggregates(joined));
   findings.push(...dependencyFindings(joined));
 
   if (!findings.length) {
@@ -481,11 +495,17 @@ export function reviewCode(code: string): Omit<CodeScanReport, "durationMs" | "c
 export function runCodeScan(code: string): CodeScanReport {
   const started = Date.now();
   const base = reviewCode(code);
+  // Verification pass (GVS5H discipline): pasted source has exactly one
+  // channel — itself. Tag, dedup, and attach the verification block.
+  tag(base.findings, "single-source");
+  const dedup = dedupeFindings(base.findings);
   return {
     ...base,
+    findings: dedup.findings,
     target: "pasted-source",
     durationMs: Date.now() - started,
     cached: false,
     scannedAt: new Date().toISOString(),
+    verification: verificationBlock(dedup.findings, dedup.deduped, { tokenUsed: false }),
   };
 }

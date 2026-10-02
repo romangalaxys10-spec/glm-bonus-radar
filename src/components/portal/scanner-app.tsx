@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { type CodeScanReport, type Finding, type ScanLead, type Severity, type UrlScanReport, severityOrder } from "@/lib/scanner/types";
+import { type CodeScanReport, type Finding, type ScanLead, type Severity, type UrlScanReport, type VerificationBlock, severityOrder } from "@/lib/scanner/types";
 import { fixPromptFor } from "@/lib/scanner/prompts";
 
 type Tab = "security" | "geo" | "qa" | "code";
@@ -38,6 +38,17 @@ function SevChip({ severity }: { severity: Severity }) {
       className={`inline-flex shrink-0 select-none items-center rounded-full border px-2 py-[2px] font-mono text-[10px] font-semibold uppercase tracking-[0.08em] ${SEV_CLASS[severity]}`}
     >
       {severity}
+    </span>
+  );
+}
+
+function ConfidenceChip({ confidence }: { confidence: NonNullable<Finding["confidence"]> }) {
+  return (
+    <span
+      title="How this finding was verified before reporting"
+      className="inline-flex shrink-0 select-none items-center rounded-full border border-[color-mix(in_srgb,var(--rc-brand)_45%,transparent)] px-1.5 py-[1px] font-mono text-[9px] uppercase tracking-[0.06em] text-[var(--rc-brand)]"
+    >
+      {confidence}
     </span>
   );
 }
@@ -114,6 +125,7 @@ function FindingsList({ findings }: { findings: Finding[] }) {
         <li key={f.id + f.evidence?.slice(0, 24)} className="rounded-xl border border-[var(--rc-border)] bg-[var(--rc-bg)] p-3.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
             <SevChip severity={f.severity} />
+            {f.confidence ? <ConfidenceChip confidence={f.confidence} /> : null}
             <span className="text-sm font-semibold">{f.title}</span>
             <span className="ml-auto font-mono text-[10px] text-[var(--rc-text-dim)]">{f.id}</span>
           </div>
@@ -194,6 +206,26 @@ function FixPromptBlock({ prompt }: { prompt: string }) {
   );
 }
 
+function VerificationBlockView({ v }: { v: VerificationBlock }) {
+  const s = v.statuses;
+  const bits = [`${s.confirmed} confirmed`, `${s.presence} presence`, `${s["single-source"]} single-source`, `${s.inferred} inferred`];
+  const extras = [
+    typeof v.filesAnalyzed === "number" ? `${v.filesAnalyzed} file${v.filesAnalyzed === 1 ? "" : "s"} analyzed` : null,
+    typeof v.filesSkipped === "number" && v.filesSkipped > 0 ? `${v.filesSkipped} skipped` : null,
+    typeof v.apiCalls === "number" ? `${v.apiCalls} GitHub API calls` : null,
+    v.treeTruncated ? "tree listing truncated — sampled" : null,
+    v.tokenUsed ? "token used (not stored)" : "anonymous scan",
+  ].filter(Boolean);
+  return (
+    <div className="rounded-xl border border-[var(--rc-border)] bg-[var(--rc-bg)] px-3.5 py-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--rc-brand)]">verification pass</p>
+      <p className="mt-1.5 font-mono text-[11px] text-[var(--rc-text)]">{bits.join(" · ")}{v.deduped ? ` · ${v.deduped} deduped` : ""}</p>
+      <p className="mt-1 font-mono text-[11px] text-[var(--rc-text-dim)]">{extras.join(" · ")}</p>
+      <p className="mt-2 text-[12px] leading-relaxed text-[var(--rc-text-dim)]">{v.policy}</p>
+    </div>
+  );
+}
+
 type Progress = { pct: number; stage: string; etaSec: number | null };
 
 function ProgressBar({ progress }: { progress: Progress }) {
@@ -222,6 +254,7 @@ function ProgressBar({ progress }: { progress: Progress }) {
 type AnyReport = (UrlScanReport | CodeScanReport) & { cached?: boolean };
 
 const SAMPLE_URLS = ["zhelp.space-z.ai", "example.com", "github.com"];
+const SAMPLE_REPOS = ["expressjs/express", "pallets/flask", "romangalaxys10-spec/zai-hosting-patcher"];
 const SAMPLE_CODE = `import pickle, requests, hashlib
 
 API_KEY = "sk-live-9f8ac3d2b1e7440d8f2c1b9e77aa2c31"
@@ -249,6 +282,10 @@ export function ScannerApp() {
   const [tab, setTab] = useState<Tab>("security");
   const [url, setUrl] = useState("");
   const [code, setCode] = useState("");
+  const [targetKind, setTargetKind] = useState<"web" | "repo">("web");
+  const [codeMode, setCodeMode] = useState<"paste" | "repo">("paste");
+  const [repo, setRepo] = useState("");
+  const [ghToken, setGhToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -336,6 +373,18 @@ export function ScannerApp() {
     run("/api/scan/code", { code });
   };
 
+  const repoMode = tab === "code" ? codeMode === "repo" : targetKind === "repo";
+  const runRepo = () => {
+    if (!repo.trim()) {
+      setError("Give a repo like owner/name or a github.com URL.");
+      return;
+    }
+    const scanner = tab === "geo" ? "geo-seo" : tab;
+    const body: Record<string, string> = { repo: repo.trim(), scanner };
+    if (ghToken.trim()) body.token = ghToken.trim();
+    run("/api/scan/github", body);
+  };
+
   const fixPrompt = useMemo(() => (report ? fixPromptFor(report) : ""), [report]);
 
   return (
@@ -366,64 +415,145 @@ export function ScannerApp() {
         ))}
       </div>
 
-      {/* Input area */}
-      {tab === "code" ? (
-        <div className="mt-4">
-          <textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            rows={10}
-            spellCheck={false}
-            placeholder="Paste code to review (max 256 KB) — it is analyzed locally, never sent to third parties."
-            className="w-full resize-y rounded-xl border border-[var(--rc-border)] bg-[var(--rc-bg)] p-3.5 font-mono text-[12.5px] leading-relaxed text-[var(--rc-text)] outline-none transition-colors placeholder:text-[var(--rc-text-dim)] focus:border-[var(--rc-accent)]"
-          />
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <button
-              onClick={runCode}
-              disabled={busy}
-              className="rounded-full bg-[var(--rc-accent)] px-5 py-2 text-sm font-semibold text-[var(--rc-on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {busy ? "reviewing…" : "Review code"}
-            </button>
-            <button onClick={() => setCode(SAMPLE_CODE)} className="font-mono text-[11px] text-[var(--rc-text-dim)] underline decoration-dotted underline-offset-4 hover:text-[var(--rc-accent)]">
-              load risky sample
-            </button>
-            <span className="font-mono text-[11px] text-[var(--rc-text-dim)]">{code.length ? `${(code.length / 1024).toFixed(1)} KB` : "auto-detects js/ts/python · package.json & requirements.txt dependency floors"}</span>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-4">
-          <div className="flex flex-wrap gap-2.5">
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && runUrl()}
-              placeholder="example.com"
-              inputMode="url"
-              className="min-w-0 flex-1 rounded-full border border-[var(--rc-border)] bg-[var(--rc-bg)] px-4 py-2 font-mono text-[13px] text-[var(--rc-text)] outline-none transition-colors placeholder:text-[var(--rc-text-dim)] focus:border-[var(--rc-accent)]"
-            />
-            <button
-              onClick={runUrl}
-              disabled={busy}
-              className="rounded-full bg-[var(--rc-accent)] px-5 py-2 text-sm font-semibold text-[var(--rc-on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {busy ? "scanning…" : tab === "security" ? "Run audit" : tab === "geo" ? "Run audit" : "Run QA"}
-            </button>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[11px] text-[var(--rc-text-dim)]">try:</span>
-            {SAMPLE_URLS.map((s) => (
+      {/* Input area — target type toggle + the per-mode inputs */}
+      <div className="mt-4">
+        <div role="group" aria-label="Target type" className="flex flex-wrap gap-1.5">
+          {(tab === "code"
+            ? ([
+                { id: "paste", label: "paste code" },
+                { id: "repo", label: "github repo" },
+              ] as const)
+            : ([
+                { id: "web", label: "website / ip" },
+                { id: "repo", label: "github repo" },
+              ] as const)
+          ).map((m) => {
+            const active = tab === "code" ? codeMode === m.id : targetKind === m.id;
+            return (
               <button
-                key={s}
-                onClick={() => setUrl(s)}
-                className="rounded-full border border-[var(--rc-border)] px-2.5 py-[3px] font-mono text-[11px] text-[var(--rc-text-dim)] transition-colors hover:border-[var(--rc-accent)] hover:text-[var(--rc-accent)]"
+                key={m.id}
+                onClick={() => {
+                  if (tab === "code") setCodeMode(m.id);
+                  else setTargetKind(m.id);
+                  setError(null);
+                }}
+                aria-pressed={active}
+                className={`rounded-full border px-3 py-1 font-mono text-[11px] transition-colors ${
+                  active
+                    ? "border-[var(--rc-brand)] bg-[color-mix(in_srgb,var(--rc-brand)_10%,transparent)] text-[var(--rc-brand)]"
+                    : "border-[var(--rc-border)] bg-[var(--rc-bg)] text-[var(--rc-text-dim)] hover:text-[var(--rc-text)]"
+                }`}
               >
-                {s}
+                {m.label}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      )}
+
+        {repoMode ? (
+          <div className="mt-3">
+            <div className="flex flex-wrap gap-2.5">
+              <input
+                value={repo}
+                onChange={(e) => setRepo(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runRepo()}
+                placeholder="owner/name or https://github.com/owner/repo"
+                inputMode="url"
+                className="min-w-0 flex-1 rounded-full border border-[var(--rc-border)] bg-[var(--rc-bg)] px-4 py-2 font-mono text-[13px] text-[var(--rc-text)] outline-none transition-colors placeholder:text-[var(--rc-text-dim)] focus:border-[var(--rc-accent)]"
+              />
+              <button
+                onClick={runRepo}
+                disabled={busy}
+                className="rounded-full bg-[var(--rc-accent)] px-5 py-2 text-sm font-semibold text-[var(--rc-on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? "scanning…" : "Scan repo"}
+              </button>
+            </div>
+            <input
+              type="password"
+              value={ghToken}
+              onChange={(e) => setGhToken(e.target.value)}
+              placeholder="GitHub token — optional for public repos, required for private ones"
+              autoComplete="off"
+              aria-label="GitHub token (used in memory only)"
+              className="mt-2.5 w-full rounded-full border border-[var(--rc-border)] bg-[var(--rc-bg)] px-4 py-2 font-mono text-[12px] text-[var(--rc-text)] outline-none transition-colors placeholder:text-[var(--rc-text-dim)] focus:border-[var(--rc-accent)]"
+            />
+            <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-[var(--rc-text-dim)]">
+              The token is used in memory for this scan only — never stored, logged, or sent anywhere except GitHub&apos;s API.
+              Private repos: classic PAT with <span className="text-[var(--rc-accent)]">repo</span> scope, or fine-grained with Metadata + Contents read.
+              Public repos: optional — raises GitHub&apos;s rate ceiling.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[11px] text-[var(--rc-text-dim)]">try:</span>
+              {SAMPLE_REPOS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setRepo(s)}
+                  className="rounded-full border border-[var(--rc-border)] px-2.5 py-[3px] font-mono text-[11px] text-[var(--rc-text-dim)] transition-colors hover:border-[var(--rc-accent)] hover:text-[var(--rc-accent)]"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : tab === "code" ? (
+          <div>
+            <textarea
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              rows={10}
+              spellCheck={false}
+              placeholder="Paste code to review (max 256 KB) — it is analyzed locally, never sent to third parties."
+              className="w-full resize-y rounded-xl border border-[var(--rc-border)] bg-[var(--rc-bg)] p-3.5 font-mono text-[12.5px] leading-relaxed text-[var(--rc-text)] outline-none transition-colors placeholder:text-[var(--rc-text-dim)] focus:border-[var(--rc-accent)]"
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                onClick={runCode}
+                disabled={busy}
+                className="rounded-full bg-[var(--rc-accent)] px-5 py-2 text-sm font-semibold text-[var(--rc-on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? "reviewing…" : "Review code"}
+              </button>
+              <button onClick={() => setCode(SAMPLE_CODE)} className="font-mono text-[11px] text-[var(--rc-text-dim)] underline decoration-dotted underline-offset-4 hover:text-[var(--rc-accent)]">
+                load risky sample
+              </button>
+              <span className="font-mono text-[11px] text-[var(--rc-text-dim)]">{code.length ? `${(code.length / 1024).toFixed(1)} KB` : "auto-detects js/ts/python · package.json & requirements.txt dependency floors"}</span>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="flex flex-wrap gap-2.5">
+              <input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runUrl()}
+                placeholder="example.com"
+                inputMode="url"
+                className="min-w-0 flex-1 rounded-full border border-[var(--rc-border)] bg-[var(--rc-bg)] px-4 py-2 font-mono text-[13px] text-[var(--rc-text)] outline-none transition-colors placeholder:text-[var(--rc-text-dim)] focus:border-[var(--rc-accent)]"
+              />
+              <button
+                onClick={runUrl}
+                disabled={busy}
+                className="rounded-full bg-[var(--rc-accent)] px-5 py-2 text-sm font-semibold text-[var(--rc-on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? "scanning…" : tab === "security" ? "Run audit" : tab === "geo" ? "Run audit" : "Run QA"}
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[11px] text-[var(--rc-text-dim)]">try:</span>
+              {SAMPLE_URLS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setUrl(s)}
+                  className="rounded-full border border-[var(--rc-border)] px-2.5 py-[3px] font-mono text-[11px] text-[var(--rc-text-dim)] transition-colors hover:border-[var(--rc-accent)] hover:text-[var(--rc-accent)]"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {error ? (
         <p role="alert" className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--rc-gone)_45%,transparent)] bg-[color-mix(in_srgb,var(--rc-gone)_10%,transparent)] px-3.5 py-2.5 text-[13px] text-[var(--rc-gone)]">
@@ -442,6 +572,7 @@ export function ScannerApp() {
               {report.scanner === "code" ? (
                 <p>
                   {(report as CodeScanReport).language} · {(report as CodeScanReport).linesScanned} lines
+                  {(report as CodeScanReport).verification?.filesAnalyzed ? ` · ${(report as CodeScanReport).verification!.filesAnalyzed} files` : ""}
                 </p>
               ) : (
                 <p className="max-w-[320px] truncate">{(report as UrlScanReport).finalUrl ?? report.target}</p>
@@ -481,6 +612,12 @@ export function ScannerApp() {
             <FindingsList findings={report.findings} />
           </div>
 
+          {"verification" in report && report.verification ? (
+            <div className="mt-4">
+              <VerificationBlockView v={report.verification} />
+            </div>
+          ) : null}
+
           {"leads" in report && report.leads?.length ? (
             <div className="mt-4">
               <LeadsList leads={report.leads} />
@@ -501,8 +638,10 @@ export function ScannerApp() {
 
           <p className="mt-5 border-t border-[var(--rc-border)] pt-4 text-xs leading-relaxed text-[var(--rc-text-dim)]">
             Heuristic point-in-time audit, not a penetration test. Findings reflect what this response revealed — absent
-            evidence is not proof of safety. Rule sets adapted from linker &amp; fable (romangalaxys10-spec), Cloudflare
-            security-audit-skill and awesome-skills code-review-skill (MIT). Scans cached 10 minutes; rate limit 8/minute.
+            evidence is not proof of safety. GitHub repo scans read public metadata + a risk-ranked file sample; private
+            repos need your token, which stays in memory for the scan only and is never stored. Rule sets adapted from
+            linker &amp; fable (romangalaxys10-spec), Cloudflare security-audit-skill and awesome-skills code-review-skill
+            (MIT). Scans cached 10 minutes; rate limit 8/minute.
           </p>
         </div>
       ) : null}

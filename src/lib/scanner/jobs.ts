@@ -151,3 +151,11 @@ export const CODE_PLAN: StagePlan = [
   { label: "running rule packs", weight: 45 },
   { label: "scoring", weight: 25 },
 ];
+
+/** GitHub repo scans: network-heavy acquisition + an explicit verify stage. */
+export const REPO_PLAN: StagePlan = [
+  { label: "repo metadata & tree", weight: 20 },
+  { label: "fetching selected files", weight: 40 },
+  { label: "analyzing & scoring", weight: 25 },
+  { label: "verifying findings", weight: 15 },
+];

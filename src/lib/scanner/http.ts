@@ -4,7 +4,10 @@ import { ScanError } from "./fetcher";
 /** Map scanner failures to honest HTTP statuses (no information leaks). */
 export function errorResponse(e: unknown): NextResponse {
   if (e instanceof ScanError) {
-    const status = e.code.startsWith("bad-") || e.code.startsWith("private-") ? 400 : 502;
+    let status = 502;
+    if (e.code === "gh-rate-limited") status = 429;
+    else if (e.code.startsWith("bad-") || e.code.startsWith("private-")) status = 400;
+    else if (e.code.startsWith("gh-")) status = e.code === "gh-network" ? 502 : 400;
     return NextResponse.json({ error: e.code, message: e.message }, { status, headers: { "cache-control": "no-store" } });
   }
   return NextResponse.json({ error: "scan-failure", message: "The scan could not complete. Try again." }, { status: 500, headers: { "cache-control": "no-store" } });

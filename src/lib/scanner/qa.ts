@@ -13,6 +13,7 @@
 
 import { guardedGet, plausibleTarget, ScanError } from "./fetcher";
 import { type Finding, type Inconclusive, type UrlScanReport, scoreFindings, stableUid } from "./types";
+import { dedupeFindings, tag, verificationBlock } from "./verify";
 
 const MAX_LINK_PROBES = 12;
 const PROBE_CAP = 8_192;
@@ -164,13 +165,18 @@ export async function runQaScan(
 
   progress(2, 0.8, "scoring");
 
+  tag(findings, "presence", (f) =>
+    f.severity !== "pass" && /qa-dead-links|qa-soft404/.test(f.id) ? "confirmed" : undefined
+  ); // dead links were actively probed — the rest reflects the observed response
+
   /* ---------- verdict (fable harness model) ---------- */
 
-  const critical = findings.filter((f) => f.severity === "critical").length;
-  const high = findings.filter((f) => f.severity === "high").length;
-  const medium = findings.filter((f) => f.severity === "medium").length;
+  const dedup = dedupeFindings(findings);
+  const critical = dedup.findings.filter((f) => f.severity === "critical").length;
+  const high = dedup.findings.filter((f) => f.severity === "high").length;
+  const medium = dedup.findings.filter((f) => f.severity === "medium").length;
   const verdict: "ok" | "needs-review" | "blocked" = critical ? "blocked" : high + medium >= 1 ? "needs-review" : "ok";
-  const passFindings = findings.filter((f) => f.severity === "pass");
+  const passFindings = dedup.findings.filter((f) => f.severity === "pass");
   const summary =
     verdict === "blocked"
       ? "Critical reliability failure detected — treat as an outage, not a QA note."
@@ -178,7 +184,7 @@ export async function runQaScan(
         ? `${medium} medium and ${high} high issue(s) worth a review pass; nothing site-down.`
         : "Basic health, links and robustness checks all came back clean.";
 
-  const { score, grade } = scoreFindings(findings);
+  const { score, grade } = scoreFindings(dedup.findings);
   return {
     scanner: "qa",
     target,
@@ -191,7 +197,8 @@ export async function runQaScan(
     verdict,
     summary,
     positives: passFindings.slice(0, 6).map((f) => f.title),
-    findings,
+    findings: dedup.findings,
     inconclusive: inconclusive.length ? inconclusive : undefined,
+    verification: verificationBlock(dedup.findings, dedup.deduped, { tokenUsed: false }),
   };
 }

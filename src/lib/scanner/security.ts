@@ -13,6 +13,7 @@
 import { guardedGet, plausibleTarget, ScanError, type FetchedPage } from "./fetcher";
 import { type Finding, type Inconclusive, type ScanLead, type UrlScanReport, scoreFindings, stableUid } from "./types";
 import { SECRET_LINE_RULES } from "./code-review";
+import { dedupeFindings, tag, verificationBlock } from "./verify";
 
 const HSTS_MIN_AGE = 15552000; // six months, securityheaders guidance
 
@@ -313,14 +314,17 @@ export async function runSecurityScan(
   progress(0, 1);
   progress(1, 0.25, "CORS & exposure probes");
   const { findings, inconclusive, leads, positives } = await deepChecks(page);
+  tag(findings, "confirmed"); // probe findings were verified against the 404 baseline
   const base = analyzeSecurityHeaders(page.headers, page.finalUrl, page.body, page.status);
+  tag(base.findings, "presence"); // header findings reflect the observed response
   findings.push(...base.findings);
   inconclusive.push(...base.inconclusive);
   progress(1, 1);
   progress(2, 0.5, "scoring");
-  const { score, grade } = scoreFindings(findings);
-  const highCount = findings.filter((f) => f.severity === "critical" || f.severity === "high").length;
-  const passFindings = findings.filter((f) => f.severity === "pass");
+  const dedup = dedupeFindings(findings);
+  const { score, grade } = scoreFindings(dedup.findings);
+  const highCount = dedup.findings.filter((f) => f.severity === "critical" || f.severity === "high").length;
+  const passFindings = dedup.findings.filter((f) => f.severity === "pass");
   return {
     scanner: "security",
     target,
@@ -336,8 +340,9 @@ export async function runSecurityScan(
         : `No confirmed exposure. ${leads.length ? `${leads.length} lead(s) need validation before they count as findings.` : "Header posture is solid; hardening notes only."}`,
     positives: [...positives, ...passFindings.slice(0, 4).map((f) => f.title)].slice(0, 8),
     leads: leads.length ? leads : undefined,
-    findings,
+    findings: dedup.findings,
     inconclusive: inconclusive.length ? inconclusive : undefined,
+    verification: verificationBlock(dedup.findings, dedup.deduped, { tokenUsed: false }),
   };
 }
 

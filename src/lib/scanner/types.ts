@@ -12,6 +12,17 @@ import { createHash } from "node:crypto";
 
 export type Severity = "critical" | "high" | "medium" | "low" | "info" | "pass";
 
+/**
+ * Verification confidence (GVS5H VERIFY discipline applied to findings):
+ * a claimed finding means nothing until it is re-verified.
+ *  - confirmed      — re-probed / baseline-checked / fetched blob with path:line /
+ *                     second-channel agreement
+ *  - single-source  — real evidence, but only one channel saw it (pasted code)
+ *  - presence       — derived from the observed response or the authoritative tree
+ *  - inferred       — conclusion from an absence (e.g. no lockfile), weakest class
+ */
+export type Confidence = "confirmed" | "single-source" | "presence" | "inferred";
+
 export type Finding = {
   id: string;
   severity: Severity;
@@ -21,6 +32,8 @@ export type Finding = {
   fix?: string;
   /** Truncated raw evidence (rendered as plain text only). */
   evidence?: string;
+  /** How the finding was verified before reporting (see Confidence). */
+  confidence?: Confidence;
 };
 
 /** A check that could not run (network error, unreachable file, etc.). */
@@ -37,6 +50,21 @@ export type ScanMeta = {
   durationMs: number;
   cached: boolean;
   scannedAt: string;
+};
+
+/** Per-report verification summary rendered by the UI. */
+export type VerificationBlock = {
+  /** One-sentence policy: what was re-verified and how. */
+  policy: string;
+  filesAnalyzed?: number;
+  filesSkipped?: number;
+  apiCalls?: number;
+  treeTruncated?: boolean;
+  /** True when the scan used a user-supplied GitHub token (never stored). */
+  tokenUsed: boolean;
+  /** Findings removed by stable-UID dedup. */
+  deduped: number;
+  statuses: { confirmed: number; "single-source": number; presence: number; inferred: number };
 };
 
 export type UrlScanReport = ScanMeta & {
@@ -56,6 +84,8 @@ export type UrlScanReport = ScanMeta & {
   breakdown?: { label: string; score: number; hint?: string }[];
   /** Fable-style verdict for the QA scanner. */
   verdict?: "ok" | "needs-review" | "blocked";
+  /** Verification summary (see VerificationBlock). */
+  verification?: VerificationBlock;
 };
 
 export type ScanLead = {
@@ -74,6 +104,9 @@ export type CodeScanReport = ScanMeta & {
   grade: string;
   findings: Finding[];
   positives?: string[];
+  inconclusive?: Inconclusive[];
+  /** Verification summary (see VerificationBlock). */
+  verification?: VerificationBlock;
 };
 
 export const SEVERITY_WEIGHT: Record<Exclude<Severity, "info" | "pass">, number> = {

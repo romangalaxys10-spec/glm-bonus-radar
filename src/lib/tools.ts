@@ -36,7 +36,7 @@ export const TOOLS: Tool[] = [
     kind: "built-in",
     icon: "scan",
     tagline:
-      "The radar's own scanner suite, four online scanners with live progress + ETA: Security Audit (headers, CORS, exposure probes, leaked secrets), SEO/GEO/Performance (AI-crawler policy, llms.txt, TTFB, payload), a QA reliability audit and a heuristic Code Reviewer — every report ends with a copy-paste fix prompt for your dev agent.",
+      "The radar's own scanner suite, four online scanners with live progress + ETA: Security Audit (headers, CORS, exposure probes, leaked secrets), SEO/GEO/Performance (AI-crawler policy, llms.txt, TTFB, payload), a QA reliability audit and a heuristic Code Reviewer. Each accepts a website/IP or a GitHub repo (private repos via a token kept in memory only), re-verifies findings before reporting, and ends with a copy-paste fix prompt for your dev agent.",
     internal: true,
   },
   {

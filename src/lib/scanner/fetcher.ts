@@ -117,7 +117,7 @@ async function assertResolvablePublic(u: URL): Promise<void> {
 }
 
 /** Read a response body capped at `cap` bytes, aborting the fetch past it. */
-async function readCapped(res: Response, abort: AbortController, cap: number) {
+export async function readBodyCapped(res: Response, abort: AbortController, cap: number) {
   const reader = res.body?.getReader();
   if (!reader) return { text: "", bytes: 0, truncated: false };
   const chunks: Uint8Array[] = [];
@@ -210,7 +210,7 @@ export async function guardedGet(
     res.headers.forEach((v, k) => {
       headers[k.toLowerCase()] = headers[k.toLowerCase()] ? `${headers[k.toLowerCase()]}, ${v}` : v;
     });
-    const { text, bytes, truncated } = await readCapped(res, abort, opts.bodyCap);
+    const { text, bytes, truncated } = await readBodyCapped(res, abort, opts.bodyCap);
     return {
       finalUrl: current.toString(),
       status: res.status,
