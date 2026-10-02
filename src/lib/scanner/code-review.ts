@@ -1,12 +1,14 @@
 /**
  * zScanner — Code Reviewer (paste-based, heuristic).
  *
- * Rule pack ideas adapted from the open-source classics (ledger
- * research-code.json): Semgrep community rules, Bandit (Python),
- * eslint-plugin-security (JS), detect-secrets/gitleaks patterns.
- * Deterministic, linear-time, evidence = the offending line (plain text).
- * The `Reviewer` interface seam deliberately stays LLM-free: pasted code is
- * confidential and this host's outbound policy is GET-only.
+ * Rule pack adapted from the open-source classics (Semgrep community
+ * rules, Bandit, eslint-plugin-security, detect-secrets/gitleaks) plus
+ * awesome-skills' code-review-skill (MIT): framework escape hatches,
+ * JWT-verify doctrine, CORS wildcard, SQL concatenation and dependency
+ * version floors from fable's sec-scan. Deterministic, linear-time,
+ * evidence = the offending line (plain text). The `Reviewer` seam stays
+ * LLM-free: pasted code is confidential and this host's outbound policy
+ * is GET-only.
  */
 
 import { type CodeScanReport, type Finding, scoreFindings } from "./types";
@@ -25,7 +27,9 @@ type LineRule = {
   unless?: RegExp;
 };
 
-const GENERIC: LineRule[] = [
+/** Secret-shaped line rules; also reused by the security scanner to scan
+ *  served HTML bodies for leaked credentials (real exposure → finding). */
+export const SECRET_LINE_RULES: LineRule[] = [
   {
     id: "sec-aws-key",
     severity: "critical",
@@ -82,6 +86,22 @@ const GENERIC: LineRule[] = [
     detail: "A database/queue DSN contains user:password@.",
     fix: "Keep DSNs in env config (DATABASE_URL etc.), never in source.",
     re: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp):\/\/[^\s'"@/]+:[^\s'"@]+@/i,
+  },
+  {
+    id: "sec-slack-token",
+    severity: "critical",
+    title: "Slack token pattern",
+    detail: "A xoxb/xoxp/xoxa/xoxs/xoxr token is hard-coded.",
+    fix: "Revoke in Slack app settings; load from a secrets manager.",
+    re: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/,
+  },
+  {
+    id: "sec-google-key",
+    severity: "high",
+    title: "Google API key pattern",
+    detail: "An AIza… Google API key is embedded in source.",
+    fix: "Rotate in Google Cloud console, restrict referrers, move to env.",
+    re: /\bAIza[0-9A-Za-z_-]{35}\b/,
   },
 ];
 
@@ -150,6 +170,46 @@ const JS_TS: LineRule[] = [
     detail: "Non-local http:// requests downgrade transport security and can be rewritten in transit.",
     fix: "Use https:// endpoints.",
     re: /["']http:\/\/(?!localhost|127\.0\.0\.1)/,
+  },
+  {
+    id: "js-jwt-decode",
+    severity: "medium",
+    title: "jwt.decode used (no signature check)",
+    detail: "jwt.decode does NOT verify signatures — trusting its output authenticates nothing (awesome-skills JWT doctrine).",
+    fix: "Use jwt.verify with pinned algorithms, issuer, audience and expiry.",
+    re: /jwt\.decode\s*\(/,
+  },
+  {
+    id: "js-dangerous-html",
+    severity: "medium",
+    title: "Framework raw-HTML escape hatch",
+    detail: "dangerouslySetInnerHTML / v-html / {@html} inject raw HTML — the React/Vue/Svelte XSS sink.",
+    fix: "Render text nodes, or sanitize with DOMPurify first.",
+    re: /dangerouslySetInnerHTML|v-html|\{@html\s/,
+  },
+  {
+    id: "js-shell-true",
+    severity: "medium",
+    title: "spawn with shell:true",
+    detail: "shell:true re-opens the shell-injection surface that exec() has.",
+    fix: "Pass argument arrays with the shell off.",
+    re: /shell\s*:\s*true/,
+  },
+  {
+    id: "js-cors-wildcard",
+    severity: "medium",
+    title: "CORS wildcard origin in code",
+    detail: "Access-Control-Allow-Origin: * (worse combined with credentials) leaks authenticated responses cross-origin.",
+    fix: "Echo only explicitly allowlisted origins.",
+    re: /Access-Control-Allow-Origin["']?\s*[,:=]\s*["']?\*/i,
+  },
+  {
+    id: "js-sql-concat",
+    severity: "high",
+    title: "SQL built by string concatenation",
+    detail: "Interpolating variables into SQL text is the canonical injection sink.",
+    fix: "Use parameterized queries / prepared statements.",
+    re: /(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\b[^;\n]{0,200}(?:\$\{[^}]{1,60}\}|\.format\(|%s|\+\s*\w+)|["']\s*\+\s*\w+\s*\+\s*["']\s*(?:SELECT|WHERE|AND|OR)\b/i,
   },
 ];
 
@@ -226,6 +286,30 @@ const PYTHON: LineRule[] = [
     fix: "Use tempfile.mkstemp/NamedTemporaryFile.",
     re: /["']\/tmp\/[^"']{1,60}["']/,
   },
+  {
+    id: "py-bare-except",
+    severity: "low",
+    title: "Bare except swallows everything",
+    detail: "`except:` hides bugs and even KeyboardInterrupt — failures become silent.",
+    fix: "Catch specific exceptions and log them.",
+    re: /^\s*except\s*:/,
+  },
+  {
+    id: "py-mutable-default",
+    severity: "low",
+    title: "Mutable default argument",
+    detail: "def f(x=[]) shares ONE list across every call — state leaks between invocations.",
+    fix: "Default to None and create the container inside.",
+    re: /def\s+\w+\s*\([^)]*=\s*(?:\[\]|\{\})/,
+  },
+  {
+    id: "py-sql-fstring",
+    severity: "high",
+    title: "SQL via f-string/format",
+    detail: "f-string or .format SQL is string-built SQL — injection.",
+    fix: "Use parameterized queries (cursor.execute(sql, params)).",
+    re: /(?:f["']\s*(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)|(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\b[^;\n]{0,200}(?:\.format\(|%\s*\())|["']\s*\+\s*\w+\s*\+\s*["']\s*(?:SELECT|WHERE|AND|OR)\b/i,
+  },
 ];
 
 const AGGREGATES: { id: string; severity: Finding["severity"]; title: string; re: RegExp; threshold: number; detail: (n: number) => string; fix?: string }[] = [
@@ -246,7 +330,77 @@ const AGGREGATES: { id: string; severity: Finding["severity"]; title: string; re
     threshold: 3,
     detail: (n) => `${n} TODO/FIXME/HACK markers in the pasted code.`,
   },
+  {
+    id: "quality-var",
+    severity: "info",
+    title: "Legacy var declarations",
+    re: /\bvar\s+[A-Za-z_$]/,
+    threshold: 5,
+    detail: (n) => `${n} var declarations — function-scoped and redeclarable, a classic bug source.`,
+    fix: "Prefer const/let.",
+  },
+  {
+    id: "quality-dead-code",
+    severity: "info",
+    title: "Commented-out code",
+    re: /^\s*(?:\/\/|#)\s*(?:const |let |var |function |def |return |import |class )/,
+    threshold: 4,
+    detail: (n) => `${n} commented-out statements — dead code confuses reviewers and hides intent.`,
+    fix: "Delete it; version history remembers.",
+  },
 ];
+
+/* ---------- dependency floors (fable sec-scan dep-vulnerable) ---------- */
+
+type DepFloor = { eco: "npm" | "pypi"; name: string; floor: [number, number, number]; issue: string };
+
+const DEP_FLOORS: DepFloor[] = [
+  { eco: "npm", name: "next", floor: [13, 4, 20], issue: "Next.js below 13.4.20 — middleware auth-bypass / cache-poisoning CVE class" },
+  { eco: "npm", name: "express", floor: [4, 18, 2], issue: "Express below 4.18.2 — CVE-2024-29041 open-redirect class" },
+  { eco: "npm", name: "lodash", floor: [4, 17, 21], issue: "Lodash below 4.17.21 — CVE-2021-23337 command injection" },
+  { eco: "npm", name: "axios", floor: [1, 6, 0], issue: "Axios below 1.6.0 — CVE-2023-45857 XSRF-token leak" },
+  { eco: "npm", name: "json5", floor: [2, 2, 2], issue: "JSON5 below 2.2.2 — CVE-2022-46175 prototype pollution" },
+  { eco: "npm", name: "ws", floor: [8, 17, 1], issue: "ws below 8.17.1 — CVE-2024-37890 DoS" },
+  { eco: "pypi", name: "django", floor: [4, 2, 0], issue: "Django below 4.2 — multiple historical CVE branches" },
+  { eco: "pypi", name: "flask", floor: [2, 3, 0], issue: "Flask below 2.3 — CVE-2023-25577 DoS class" },
+  { eco: "pypi", name: "requests", floor: [2, 31, 0], issue: "Requests below 2.31.0 — CVE-2023-32681 proxy-auth leak" },
+  { eco: "pypi", name: "pillow", floor: [10, 0, 0], issue: "Pillow below 10.0.0 — image-parsing CVE run" },
+];
+
+function semverLess(a: number[], b: [number, number, number]): boolean {
+  for (let i = 0; i < 3; i++) {
+    const ai = a[i] ?? 0;
+    if (ai !== b[i]) return ai < b[i];
+  }
+  return false;
+}
+
+function dependencyFindings(code: string): Finding[] {
+  const out: Finding[] = [];
+  const isNpm = /"(?:dependencies|devDependencies)"\s*:\s*\{/.test(code);
+  const isPypi = /^\s*(?:[A-Za-z0-9_.-]+)(?:==|>=|~=)\d/m.test(code) && /(?:django|flask|requests|pillow)/i.test(code);
+  for (const dep of DEP_FLOORS) {
+    if (dep.eco === "npm" && !isNpm) continue;
+    if (dep.eco === "pypi" && !isPypi) continue;
+    const re =
+      dep.eco === "npm"
+        ? new RegExp(`"${dep.name}"\\s*:\\s*["'][\\^~>=]*v?(\\d+)\\.(\\d+)\\.(\\d+)`, "i")
+        : new RegExp(`\\b${dep.name}(?:==|>=|~=)v?(\\d+)\\.(\\d+)(?:\\.(\\d+))?`, "im");
+    const m = re.exec(code);
+    if (!m) continue;
+    const ver = [Number(m[1]), Number(m[2]), Number(m[3] ?? 0)];
+    if (semverLess(ver, dep.floor))
+      out.push({
+        id: "dep-vulnerable",
+        severity: "high",
+        title: `${dep.name} ${ver.join(".")} below known-safe floor ${dep.floor.join(".")}`,
+        detail: `${dep.issue}. Pinned dependency versions below the safe floor ship known CVEs into the build.`,
+        fix: `Upgrade ${dep.name} to >= ${dep.floor.join(".")} (or the latest patched line) and re-audit.`,
+        evidence: m[0].slice(0, 80),
+      });
+  }
+  return out;
+}
 
 function detectLanguage(code: string): string {
   const py = (code.match(/\bdef\s+\w+\s*\(|\bimport\s+\w+|\bfrom\s+\w+\s+import|\bself\b|\belif\b/g) ?? []).length;
@@ -261,7 +415,7 @@ function detectLanguage(code: string): string {
 
 function lineRulesFor(lang: string): LineRule[] {
   const pack = lang === "python" ? PYTHON : lang === "javascript" || lang === "typescript" ? JS_TS : [];
-  return [...GENERIC, ...pack];
+  return [...SECRET_LINE_RULES, ...pack];
 }
 
 export function reviewCode(code: string): Omit<CodeScanReport, "durationMs" | "cached" | "scannedAt" | "target"> {
@@ -306,12 +460,22 @@ export function reviewCode(code: string): Omit<CodeScanReport, "durationMs" | "c
     }
   }
 
+  findings.push(...dependencyFindings(joined));
+
   if (!findings.length) {
     findings.push({ id: "clean", severity: "pass", title: "No rule-pack findings", detail: `Heuristic pack (${rules.length} rules) found no matches in ${lines.length} lines of ${language === "unknown" ? "unrecognized" : language} code.` });
   }
 
+  const severe = findings.filter((f) => f.severity === "critical" || f.severity === "high").length;
+  const positives = severe
+    ? undefined
+    : [
+        `No critical/high matches across ${rules.length} rules`,
+        language !== "unknown" ? `Language detected as ${language}` : "",
+      ].filter(Boolean);
+
   const { score, grade } = scoreFindings(findings);
-  return { scanner: "code", language, linesScanned: lines.length, score, grade, findings };
+  return { scanner: "code", language, linesScanned: lines.length, score, grade, findings, positives };
 }
 
 export function runCodeScan(code: string): CodeScanReport {

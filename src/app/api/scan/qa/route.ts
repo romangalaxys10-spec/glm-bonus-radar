@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runGeoSeoScan } from "@/lib/scanner/geoseo";
+import { runQaScan } from "@/lib/scanner/qa";
 import { URL_PLAN, startJob } from "@/lib/scanner/jobs";
 import { cachedScan, clientKey, overRate, withSlot } from "@/lib/scanner/guard";
 import { errorResponse, readJson } from "@/lib/scanner/http";
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const target = await preflightTarget(url);
     const jobId = startJob(URL_PLAN, (progress) =>
       withSlot(() =>
-        cachedScan(`geo:${target.toLowerCase()}`, () => runGeoSeoScan(target, progress)).then(({ value, cached }) => ({
+        cachedScan(`qa:${target.toLowerCase()}`, () => runQaScan(target, progress)).then(({ value, cached }) => ({
           ...value,
           cached,
         }))

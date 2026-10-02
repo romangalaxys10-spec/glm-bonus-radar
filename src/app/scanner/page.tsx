@@ -5,17 +5,18 @@ import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { GitHubMark } from "@/components/portal/scanner-icons";
 
 export const metadata: Metadata = {
-  title: "zScanner — free online Security, GEO/SEO and Code scanners",
+  title: "zScanner — free online Security, SEO/GEO/Performance, QA and Code scanners",
   description:
-    "Three instant scanners: Security Audit (CSP, HSTS, cookies, mixed content), GEO/SEO Audit (titles, structured data, llms.txt, AI-crawler policy) and a heuristic Code Reviewer. No signup, results in seconds.",
+    "Four instant scanners with live progress + ETA: Security Audit (headers, CORS, exposure probes, leaked secrets), SEO/GEO/Performance audit (titles, structured data, llms.txt, AI-crawler policy, TTFB), a QA reliability audit and a heuristic Code Reviewer. Every report ends with a copy-paste fix prompt for your dev agent. No signup.",
   alternates: { canonical: "/scanner" },
 };
 
 const NAV = [
   { href: "/", label: "← radar" },
   { href: "#security", label: "security" },
-  { href: "#geo", label: "geo/seo" },
-  { href: "#code", label: "code" },
+  { href: "#security", label: "seo·geo·perf" },
+  { href: "#security", label: "qa" },
+  { href: "#security", label: "code" },
 ];
 
 export default function ScannerPage() {
@@ -39,7 +40,7 @@ export default function ScannerPage() {
           </a>
           <nav aria-label="Scanner tabs" className="order-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[12px] md:order-2">
             {NAV.map((n) => (
-              <a key={n.href} href={n.href} className="text-[var(--rc-text-dim)] transition-colors hover:text-[var(--rc-accent)]">
+              <a key={n.label} href={n.href} className="text-[var(--rc-text-dim)] transition-colors hover:text-[var(--rc-accent)]">
                 {n.label}
               </a>
             ))}
@@ -64,17 +65,19 @@ export default function ScannerPage() {
       <main className="mx-auto w-full max-w-4xl flex-1 px-5 pb-24 pt-12 md:px-8">
         <section className="pb-8">
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rc-accent)]">
-            zscanner · three scanners · no signup
+            zscanner · four scanners · no signup
           </p>
           <h1 className="mt-1.5 font-display text-4xl font-bold leading-[1.08] tracking-tight text-gradient md:text-5xl">
             Scan it before they rate it
           </h1>
           <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[var(--rc-text-dim)]">
-            The scanner suite behind the GLM Bonus Radar, opened up. Audit a URL&apos;s security headers, measure how
-            findable a page is by search engines <em>and</em> generative engines (the 2026 layer: llms.txt, AI-crawler
-            policy, structured data), or run a heuristic code review — instantly, with weighted scores and concrete
-            fixes. Rule sets adapted from securityheaders/OWASP, current GEO checklists and Semgrep/Bandit-style
-            analysis.
+            The scanner suite behind the GLM Bonus Radar, opened up. Audit a URL&apos;s security posture (headers, CORS,
+            exposed dotfiles, leaked secrets), measure how findable a page is by search engines <em>and</em> generative
+            engines — now with the performance layer (TTFB, payload, render-blocking) — run a QA reliability audit, or
+            review pasted code heuristically. Scans run as tracked jobs with a live progress bar and ETA, and every
+            report ends with a strong copy-paste fix prompt for your dev agent. Rule sets adapted from
+            securityheaders/OWASP, current GEO checklists, Semgrep/Bandit-style analysis, fable&apos;s sec-scan, Cloudflare&apos;s
+            security-audit-skill and awesome-skills&apos; code-review-skill.
           </p>
         </section>
 
@@ -83,22 +86,27 @@ export default function ScannerPage() {
         </section>
 
         <section className="pt-10" aria-label="How scoring works">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             {[
               {
                 id: "01",
                 t: "Security Audit",
-                d: "Transport, HSTS, CSP, clickjacking, MIME sniffing, referrer policy, COOP, cookie flags, fingerprinting headers and mixed content — graded like securityheaders.com, with a fix line per finding.",
+                d: "Transport, HSTS, CSP deep-lint, clickjacking, cookies, Permissions-Policy, CORS reflection, server-version disclosure, 404-baseline dotfile probes (.env, .git), secrets in served HTML and stack-trace leaks — Cloudflare-doctrine severity: exposures are findings, header gaps are hardening, suspicions are leads.",
               },
               {
                 id: "02",
-                t: "GEO/SEO Audit",
-                d: "On-page SEO (title, description, canonical, viewport, OG, h1, alt, JSON-LD) plus the generative-engine layer: robots.txt AI-crawler policy for GPTBot/ClaudeBot/PerplexityBot & friends, llms.txt, sitemap, citation-worthiness.",
+                t: "SEO · GEO · Performance",
+                d: "On-page SEO (title, description, canonical, OG, headings, keyword density, internal links), the generative-engine layer (robots.txt AI-crawler policy for 14 bots, llms.txt, JSON-LD, authority, citation readiness, entity coverage) and performance (TTFB, HTML weight, images, lazy-loading, render-blocking scripts, compression) — with a four-pillar breakdown, linker-style.",
               },
               {
                 id: "03",
+                t: "QA Audit",
+                d: "Reliability & robustness from fable's methodology: availability and response time, doctype/charset/lang/favicon hygiene, internal-link probing with a 404 baseline (soft-404 aware), insecure references, stack-trace leakage, deprecated tags — with an ok / needs-review / blocked verdict.",
+              },
+              {
+                id: "04",
                 t: "Code Reviewer",
-                d: "Paste up to 256 KB of JS/TS/Python: hard-coded secrets and keys, eval/pickle/shell sinks, weak hashes, TLS verification disabled, debug leftovers — Semgrep/Bandit-style heuristics, deterministic and offline.",
+                d: "Paste up to 256 KB of JS/TS/Python: secrets (AWS/GitHub/Slack/Google/PEM/JWT), eval/pickle/shell sinks, SQL concatenation, jwt.decode, framework raw-HTML escape hatches, CORS wildcards, weak hashes, dependency floors from package.json & requirements.txt — plus a strengths-first report per awesome-skills' review format.",
               },
             ].map((c) => (
               <div key={c.id} className="rounded-2xl border border-[var(--rc-border)] bg-[var(--rc-surface)] p-5">
@@ -139,7 +147,7 @@ export default function ScannerPage() {
             operatingSystem: "Web",
             url: "https://zhelp.space-z.ai/scanner",
             description:
-              "Free online scanner suite: HTTP security-header audit, GEO/SEO audit (incl. AI-crawler policy and llms.txt checks) and a heuristic code reviewer.",
+              "Free online scanner suite: HTTP security-header & exposure audit, SEO/GEO/Performance audit (incl. AI-crawler policy and llms.txt checks), a QA reliability audit and a heuristic code reviewer — with progress/ETA and per-report dev-agent fix prompts.",
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
           }),
         }}

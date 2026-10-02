@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
+
 /**
- * zScanner — shared types for the three scanners.
+ * zScanner — shared types for the scanners.
  *
  * Findings model follows the ledger research (Semgrep/securityheaders/
  * GEO-checklist style): every check yields a finding with a severity, a
@@ -38,11 +40,30 @@ export type ScanMeta = {
 };
 
 export type UrlScanReport = ScanMeta & {
-  scanner: "security" | "geo-seo";
+  scanner: "security" | "geo-seo" | "qa";
   score: number;
   grade: string;
   findings: Finding[];
   inconclusive?: Inconclusive[];
+  /** One-line posture summary (Cloudflare security-audit-skill report shape). */
+  summary?: string;
+  /** Things checked and cleared — surfaced per awesome-skills review format. */
+  positives?: string[];
+  /** Suspicious surfaces that need a human/agent follow-up. NEVER scored —
+   *  severity cannot be assigned to unvalidated leads (CF doctrine). */
+  leads?: ScanLead[];
+  /** Pillar breakdown 0–100 (linker-style sub-scores), UI draws bars. */
+  breakdown?: { label: string; score: number; hint?: string }[];
+  /** Fable-style verdict for the QA scanner. */
+  verdict?: "ok" | "needs-review" | "blocked";
+};
+
+export type ScanLead = {
+  title: string;
+  why: string;
+  /** Concrete local next step for the validating agent. */
+  how?: string;
+  evidence?: string;
 };
 
 export type CodeScanReport = ScanMeta & {
@@ -52,6 +73,7 @@ export type CodeScanReport = ScanMeta & {
   score: number;
   grade: string;
   findings: Finding[];
+  positives?: string[];
 };
 
 export const SEVERITY_WEIGHT: Record<Exclude<Severity, "info" | "pass">, number> = {
@@ -84,4 +106,9 @@ export function scoreFindings(findings: Finding[]): { score: number; grade: stri
 export function severityOrder(s: Severity): number {
   const order: Severity[] = ["critical", "high", "medium", "low", "info", "pass"];
   return order.indexOf(s);
+}
+
+/** Stable finding UID (fable secmonitor style): sha1(id|evidence)[:12]. */
+export function stableUid(id: string, evidence: string): string {
+  return createHash("sha1").update(`${id}|${evidence.slice(0, 200)}`).digest("hex").slice(0, 12);
 }

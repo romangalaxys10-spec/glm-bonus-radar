@@ -1,14 +1,18 @@
 /**
  * zScanner — Security Audit.
  *
- * Rule set adapted from the securityheaders.com methodology and the OWASP
- * Secure Headers Project (ledger research-security.json): transport security,
- * HSTS, CSP, clickjacking, MIME sniffing, referrer leakage, feature policy,
- * COOP, fingerprinting headers, cookie flags and mixed content.
+ * Rule set adapted from securityheaders.com / OWASP Secure Headers, the
+ * sec-scan methodology from fable (romangalaxys10-spec/fable, MIT: server
+ * version disclosure, CORS reflection, 404-baseline exposure probes,
+ * secrets-in-body) and the Cloudflare security-audit-skill doctrine:
+ * header gaps are hardening notes (low), actual exposures are real
+ * findings (high/critical), and unvalidated suspicions become leads with
+ * NO severity — severity cannot exceed demonstrated impact.
  */
 
-import { guardedGet, plausibleTarget, ScanError } from "./fetcher";
-import { type Finding, type Inconclusive, type UrlScanReport, scoreFindings } from "./types";
+import { guardedGet, plausibleTarget, ScanError, type FetchedPage } from "./fetcher";
+import { type Finding, type Inconclusive, type ScanLead, type UrlScanReport, scoreFindings, stableUid } from "./types";
+import { SECRET_LINE_RULES } from "./code-review";
 
 const HSTS_MIN_AGE = 15552000; // six months, securityheaders guidance
 
@@ -297,13 +301,26 @@ export function analyzeSecurityHeaders(
   return { findings, inconclusive };
 }
 
-export async function runSecurityScan(rawUrl: string): Promise<UrlScanReport> {
+export async function runSecurityScan(
+  rawUrl: string,
+  progress: (i: number, f: number, note?: string) => void = () => {}
+): Promise<UrlScanReport> {
   const started = Date.now();
   const target = plausibleTarget(rawUrl);
   if (!target) throw new ScanError("bad-url", "Give a public URL like example.com.");
+  progress(0, 0.35, "resolving & fetching");
   const page = await guardedGet(target, { bodyCap: 2_000_000 });
-  const { findings, inconclusive } = analyzeSecurityHeaders(page.headers, page.finalUrl, page.body, page.status);
+  progress(0, 1);
+  progress(1, 0.25, "CORS & exposure probes");
+  const { findings, inconclusive, leads, positives } = await deepChecks(page);
+  const base = analyzeSecurityHeaders(page.headers, page.finalUrl, page.body, page.status);
+  findings.push(...base.findings);
+  inconclusive.push(...base.inconclusive);
+  progress(1, 1);
+  progress(2, 0.5, "scoring");
   const { score, grade } = scoreFindings(findings);
+  const highCount = findings.filter((f) => f.severity === "critical" || f.severity === "high").length;
+  const passFindings = findings.filter((f) => f.severity === "pass");
   return {
     scanner: "security",
     target,
@@ -313,7 +330,141 @@ export async function runSecurityScan(rawUrl: string): Promise<UrlScanReport> {
     scannedAt: new Date().toISOString(),
     score,
     grade,
+    summary:
+      highCount
+        ? `${highCount} exposure(s) confirmed at the transport/header/content layer; hardening gaps listed below them.`
+        : `No confirmed exposure. ${leads.length ? `${leads.length} lead(s) need validation before they count as findings.` : "Header posture is solid; hardening notes only."}`,
+    positives: [...positives, ...passFindings.slice(0, 4).map((f) => f.title)].slice(0, 8),
+    leads: leads.length ? leads : undefined,
     findings,
     inconclusive: inconclusive.length ? inconclusive : undefined,
   };
+}
+
+/* ---------- deep checks: CORS, probes, leaks (fable sec-scan port) ---------- */
+
+const PROBES: { path: string; id: string; severity: Finding["severity"]; title: string; detail: string; fix?: string }[] = [
+  { path: "/.env", id: "sec-probe-env", severity: "critical", title: ".env file publicly readable", detail: "A served .env typically carries app secrets (DB DSNs, API keys). This is a live exposure, not a hardening gap.", fix: "Block dotfiles at the edge and rotate any credential that lived in that file." },
+  { path: "/.git/HEAD", id: "sec-probe-git", severity: "high", title: ".git directory exposed", detail: "If /.git/HEAD serves, the whole repository history is usually downloadable — source and any committed secrets included.", fix: "Deny /.git at the web server; never deploy the VCS directory." },
+  { path: "/server-status", id: "sec-probe-status", severity: "medium", title: "/server-status reachable", detail: "Apache server-status exposes requests, vhosts and client IPs to anonymous visitors.", fix: "Restrict server-status to localhost." },
+  { path: "/.DS_Store", id: "sec-probe-dsstore", severity: "low", title: ".DS_Store served", detail: "macOS metadata leaks directory listings from the deploy artifact.", fix: "Strip .DS_Store from deploys." },
+];
+
+const LEAK_PROBE = "/.well-known/security.txt";
+
+/** Exported for the deep-check unit test (fabricated-page fixture). */
+export async function deepChecks(page: FetchedPage): Promise<{
+  findings: Finding[];
+  inconclusive: Inconclusive[];
+  leads: ScanLead[];
+  positives: string[];
+}> {
+  const findings: Finding[] = [];
+  const inconclusive: Inconclusive[] = [];
+  const leads: ScanLead[] = [];
+  const positives: string[] = [];
+  const origin = new URL(page.finalUrl).origin;
+
+  // --- CORS reflection test (real control check, not a header-gap note)
+  try {
+    const evil = await guardedGet(page.finalUrl, {
+      bodyCap: 1_024,
+      headers: { origin: "https://zscanner-audit.example" },
+    });
+    const acao = (evil.headers["access-control-allow-origin"] ?? "").trim();
+    const acac = (evil.headers["access-control-allow-credentials"] ?? "").trim().toLowerCase();
+    if (acao === "https://zscanner-audit.example" && acac === "true")
+      findings.push({ id: "sec-cors-reflect", severity: "high", title: "CORS reflects arbitrary origin with credentials", detail: "The server echoes any Origin and allows credentials — any site can read authenticated responses cross-origin.", fix: "Allowlist origins explicitly; never reflect unvalidated Origins with credentials.", evidence: `ACAO: ${acao} · ACAC: ${acac}` });
+    else if (acao === "*" && acac === "true")
+      findings.push({ id: "sec-cors-star-cred", severity: "high", title: "CORS wildcard combined with credentials", detail: "Access-Control-Allow-Origin: * with allow-credentials:true is an invalid pairing — browsers reject it, proxies normalize it, and the intent (open + credentialed) is itself the vulnerability.", fix: "Pick one: allowlisted origins with credentials, or wildcard without." });
+    else if (acao)
+      positives.push(`CORS policy explicit (${acao === "*" ? "wildcard, no credentials" : "restricted"})`);
+  } catch {
+    inconclusive.push({ id: "sec-cors-test", what: "CORS reflection test", why: "origin-flagged re-fetch failed" });
+  }
+
+  // --- 404 baseline, then exposure probes (fable sec-scan model)
+  let baselineOk = true;
+  try {
+    const rand = `/zscan-${Math.random().toString(36).slice(2, 10)}`;
+    const baseline = await guardedGet(`${origin}${rand}`, { bodyCap: 1_024 });
+    if (baseline.status >= 200 && baseline.status < 300) {
+      baselineOk = false;
+      inconclusive.push({ id: "sec-probes", what: "Exposure probes", why: "unknown paths answer 200 (soft-404), so probe results would be noise" });
+    }
+  } catch {
+    baselineOk = false;
+    inconclusive.push({ id: "sec-probes", what: "Exposure probes", why: "baseline request failed" });
+  }
+  if (baselineOk) {
+    const probes = await Promise.all(
+      PROBES.map(async (p) => {
+        try {
+          const r = await guardedGet(`${origin}${p.path}`, { bodyCap: 4_096 });
+          return { p, status: r.status };
+        } catch {
+          return { p, status: -1 };
+        }
+      })
+    );
+    for (const { p, status } of probes) {
+      if (status >= 200 && status < 300)
+        findings.push({ id: p.id, severity: p.severity, title: p.title, detail: p.detail, fix: p.fix, evidence: `GET ${p.path} → HTTP ${status} · uid ${stableUid(p.id, p.path)}` });
+    }
+    try {
+      const secTxt = await guardedGet(`${origin}${LEAK_PROBE}`, { bodyCap: 4_096 });
+      if (secTxt.status >= 200 && secTxt.status < 300 && /contact/i.test(secTxt.body))
+        positives.push("security.txt published (RFC 9116) — reports have a landing place");
+    } catch {
+      // optional positive check only
+    }
+  }
+
+  // --- secrets in served body (real exposure → real severity)
+  for (const rule of SECRET_LINE_RULES) {
+    rule.re.lastIndex = 0;
+    const m = rule.re.exec(page.body.slice(0, 262_144));
+    if (m) {
+      const isCredAssign = rule.id === "sec-cred-assignment";
+      findings.push({
+        id: "sec-leak-body",
+        severity: isCredAssign ? "high" : rule.severity === "critical" ? "high" : rule.severity,
+        title: `Secret-shaped string in served HTML (${rule.title})`,
+        detail: `The page itself contains ${rule.detail.toLowerCase()}`,
+        fix: rule.fix,
+        evidence: `${m[0].slice(0, 60)}… · uid ${stableUid("sec-leak-body", m[0])}`,
+      });
+      break; // one representative exposure is enough
+    }
+  }
+
+  // --- server version disclosure (fable hdr-server-version, downgraded per
+  // CF doctrine: internal disclosure = low, not high)
+  const server = (page.headers["server"] ?? "").trim();
+  if (/\d/.test(server))
+    findings.push({ id: "sec-server-version", severity: "low", title: `Server version disclosed (${server.slice(0, 40)})`, detail: "Version numbers in the Server header make attacker recon cheaper.", fix: "Strip or minimize the Server header at the edge." });
+  if ((page.headers["via"] ?? "").trim())
+    findings.push({ id: "sec-via", severity: "info", title: "Via header reveals proxy chain", detail: page.headers["via"].slice(0, 80) });
+
+  // --- error-page stack trace (info-leak = medium per OWASP, CF "low" floor)
+  if (page.status >= 400) {
+    const trace = /(?:Traceback \(most recent call last\)|at\s+[/\w.-]+:\d+:\d+|SQLSTATE\[\w+\]|ORA-\d{5})/.exec(page.body);
+    if (trace)
+      findings.push({ id: "sec-error-trace", severity: "medium", title: "Error page leaks internal detail", detail: "The 4xx/5xx body contains stack-trace or database error markers — internal paths and queries are attacker gold.", evidence: trace[0].slice(0, 100), fix: "Serve generic error bodies; log details server-side only." });
+  }
+
+  // --- leads: open-redirect-looking parameters (CF doctrine: never scored
+  // without following the redirect — emitted as needs-validation leads)
+  const redirectish = /(?:href|action)\s*=\s*["'][^"']*[?&](?:redirect|return|returnurl|next|url|goto|continue|callback|target)\s*=[^"']{1,120}["']/gi;
+  const leadMatches = [...page.body.slice(0, 262_144).matchAll(redirectish)].slice(0, 2);
+  for (const m of leadMatches) {
+    leads.push({
+      title: "Open-redirect-looking parameter",
+      why: "A link parameter named like a redirect target was found. Whether it is exploitable depends on server-side validation, which a GET-only scan cannot demonstrate.",
+      how: "Request the URL with the parameter set to an absolute off-site value (e.g. https://example.invalid) and check whether the server 3xx-redirects off-host without validation.",
+      evidence: m[0].slice(0, 120),
+    });
+  }
+
+  return { findings, inconclusive, leads, positives };
 }

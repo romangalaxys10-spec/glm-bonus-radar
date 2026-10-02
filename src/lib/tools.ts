@@ -36,7 +36,7 @@ export const TOOLS: Tool[] = [
     kind: "built-in",
     icon: "scan",
     tagline:
-      "The radar's own online scanner suite: Security Audit (headers, cookies, mixed content), GEO/SEO Audit (structured data, llms.txt, AI-crawler policy) and a heuristic Code Reviewer — scored, with concrete fixes.",
+      "The radar's own scanner suite, four online scanners with live progress + ETA: Security Audit (headers, CORS, exposure probes, leaked secrets), SEO/GEO/Performance (AI-crawler policy, llms.txt, TTFB, payload), a QA reliability audit and a heuristic Code Reviewer — every report ends with a copy-paste fix prompt for your dev agent.",
     internal: true,
   },
   {

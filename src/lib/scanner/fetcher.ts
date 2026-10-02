@@ -31,6 +31,8 @@ export type FetchedPage = {
   bytes: number;
   truncated: boolean;
   hops: number;
+  /** Time from final-hop request start to response headers (perf signal). */
+  ttfbMs: number;
 };
 
 /** Parse an IPv4 string; null when not dotted-quad. */
@@ -148,7 +150,7 @@ async function readCapped(res: Response, abort: AbortController, cap: number) {
  */
 export async function guardedGet(
   rawUrl: string,
-  opts: { bodyCap: number; validateDns?: boolean } = { bodyCap: 2_000_000 }
+  opts: { bodyCap: number; validateDns?: boolean; headers?: Record<string, string> } = { bodyCap: 2_000_000 }
 ): Promise<FetchedPage> {
   const started = Date.now();
   let current: URL;
@@ -162,10 +164,12 @@ export async function guardedGet(
 
   const deadline = started + TOTAL_DEADLINE_MS;
   let hops = 0;
+  let ttfbMs = 0;
   for (;;) {
     schemeHostPort(current);
     if (opts.validateDns !== false) await assertResolvablePublic(current);
     if (Date.now() > deadline) throw new ScanError("deadline", "Scan took too long; try again later.");
+    const hopStarted = Date.now();
     const abort = new AbortController();
     const timer = setTimeout(() => abort.abort(), Math.min(PER_REQUEST_TIMEOUT_MS, deadline - Date.now()));
     let res: Response;
@@ -177,6 +181,7 @@ export async function guardedGet(
         headers: {
           "user-agent": "zScanner/1.0 (+https://zhelp.space-z.ai/scanner; audit bot)",
           accept: "text/html,application/xhtml+xml,text/plain,*/*;q=0.8",
+          ...opts.headers,
         },
       });
     } catch (e) {
@@ -185,6 +190,7 @@ export async function guardedGet(
       throw new ScanError("fetch-failure", msg);
     }
     clearTimeout(timer);
+    ttfbMs = Date.now() - hopStarted;
 
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const loc = res.headers.get("location");
@@ -213,6 +219,7 @@ export async function guardedGet(
       bytes,
       truncated,
       hops,
+      ttfbMs,
     };
   }
 }
@@ -229,4 +236,18 @@ export function plausibleTarget(raw: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Fast-fail preflight for POST handlers: normalize, validate scheme/port/
+ * credentials/host and resolve DNS through the same guards the scan will
+ * use. Throws ScanError so routes can 400 before a job is created.
+ */
+export async function preflightTarget(raw: string): Promise<string> {
+  const target = plausibleTarget(raw);
+  if (!target) throw new ScanError("bad-url", "Give a public URL like example.com.");
+  const u = new URL(target);
+  schemeHostPort(u);
+  await assertResolvablePublic(u);
+  return target;
 }
