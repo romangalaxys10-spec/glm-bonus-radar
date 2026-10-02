@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TOOLS, type Tool, type ToolIcon } from "@/lib/tools";
 
 /**
@@ -49,6 +50,25 @@ function ToolIconGlyph({ icon }: { icon: ToolIcon }) {
           <line x1="12" y1="19" x2="20" y2="19" />
         </svg>
       );
+    case "scan":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className="h-4 w-4"
+        >
+          <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+          <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+          <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+          <line x1="7" y1="12" x2="17" y2="12" />
+        </svg>
+      );
     case "article":
     default:
       return (
@@ -73,13 +93,15 @@ function ToolIconGlyph({ icon }: { icon: ToolIcon }) {
 
 function KindPill({ kind }: { kind: Tool["kind"] }) {
   const branded = kind === "open source";
+  const builtin = kind === "built-in";
+  const cls = builtin
+    ? "border-[color-mix(in_srgb,var(--rc-accent)_55%,transparent)] bg-[color-mix(in_srgb,var(--rc-accent)_12%,transparent)] text-[var(--rc-accent)]"
+    : branded
+      ? "border-[color-mix(in_srgb,var(--rc-brand)_55%,transparent)] bg-[color-mix(in_srgb,var(--rc-brand)_12%,transparent)] text-[var(--rc-brand)]"
+      : "border-[var(--rc-border)] bg-[var(--rc-bg)] text-[var(--rc-text-dim)]";
   return (
     <span
-      className={`inline-flex shrink-0 cursor-default select-none items-center rounded-full border px-2.5 py-[3px] font-mono text-[10px] font-semibold uppercase tracking-[0.08em] ${
-        branded
-          ? "border-[color-mix(in_srgb,var(--rc-brand)_55%,transparent)] bg-[color-mix(in_srgb,var(--rc-brand)_12%,transparent)] text-[var(--rc-brand)]"
-          : "border-[var(--rc-border)] bg-[var(--rc-bg)] text-[var(--rc-text-dim)]"
-      }`}
+      className={`inline-flex shrink-0 cursor-default select-none items-center rounded-full border px-2.5 py-[3px] font-mono text-[10px] font-semibold uppercase tracking-[0.08em] ${cls}`}
     >
       {kind}
     </span>
@@ -87,13 +109,8 @@ function KindPill({ kind }: { kind: Tool["kind"] }) {
 }
 
 function ToolCard({ tool }: { tool: Tool }) {
-  return (
-    <a
-      href={tool.url}
-      target="_blank"
-      rel="noopener"
-      className="group flex flex-col rounded-2xl border border-[var(--rc-border)] bg-[var(--rc-surface)] p-5 transition-colors hover:border-[var(--rc-accent)]"
-    >
+  const inner = (
+    <>
       <div className="flex items-center justify-between gap-3">
         <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--rc-border)] bg-[color-mix(in_srgb,var(--rc-accent)_8%,transparent)] text-[var(--rc-accent)]">
           <ToolIconGlyph icon={tool.icon} />
@@ -114,9 +131,19 @@ function ToolCard({ tool }: { tool: Tool }) {
           aria-hidden
           className="shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--rc-accent)]"
         >
-          ↗
+          {tool.internal ? "→" : "↗"}
         </span>
       </span>
+    </>
+  );
+  const cls = "group flex flex-col rounded-2xl border border-[var(--rc-border)] bg-[var(--rc-surface)] p-5 transition-colors hover:border-[var(--rc-accent)]";
+  return tool.internal ? (
+    <Link href={tool.url} className={cls}>
+      {inner}
+    </Link>
+  ) : (
+    <a href={tool.url} target="_blank" rel="noopener" className={cls}>
+      {inner}
     </a>
   );
 }
@@ -131,7 +158,7 @@ export function ToolsSection() {
           <ToolCard key={t.id} tool={t} />
         ))}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {rest.map((t) => (
           <ToolCard key={t.id} tool={t} />
         ))}

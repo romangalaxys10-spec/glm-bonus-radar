@@ -9,8 +9,8 @@
  *     which was battle-tested on this very portal (zhelp.space-z.ai).
  */
 
-export type ToolIcon = "github" | "article" | "terminal" | "layers";
-export type ToolKind = "tutorial" | "open source" | "review" | "guide";
+export type ToolIcon = "github" | "article" | "terminal" | "layers" | "scan";
+export type ToolKind = "tutorial" | "open source" | "review" | "guide" | "built-in";
 
 export type Tool = {
   id: string;
@@ -23,9 +23,22 @@ export type Tool = {
   tagline: string;
   /** Featured cards render in the two-column lead row. */
   featured?: boolean;
+  /** Internal routes render as Next <Link> without target=_blank. */
+  internal?: boolean;
 };
 
 export const TOOLS: Tool[] = [
+  {
+    id: "zscanner",
+    name: "zScanner",
+    url: "/scanner",
+    host: "this app",
+    kind: "built-in",
+    icon: "scan",
+    tagline:
+      "The radar's own online scanner suite: Security Audit (headers, cookies, mixed content), GEO/SEO Audit (structured data, llms.txt, AI-crawler policy) and a heuristic Code Reviewer — scored, with concrete fixes.",
+    internal: true,
+  },
   {
     id: "github-auto-push",
     name: "GitHub Auto Push Protocol",

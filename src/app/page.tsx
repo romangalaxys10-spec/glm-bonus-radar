@@ -27,6 +27,7 @@ const NAV = [
   { href: "#plans", label: "plans" },
   { href: "#invite", label: "invite" },
   { href: "#tools", label: "tools" },
+  { href: "/scanner", label: "scanner" },
 ];
 
 const GITHUB_REPO = "https://github.com/romangalaxys10-spec/glm-bonus-radar";
