@@ -3,6 +3,7 @@ import { ThemeSwitch } from "@/components/portal/theme-switch";
 import { ScannerApp } from "@/components/portal/scanner-app";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { GitHubMark } from "@/components/portal/scanner-icons";
+import { AiVpsBadge } from "@/components/portal/ai-vps-badge";
 
 export const metadata: Metadata = {
   title: "zScanner — free online Security, SEO/GEO/Performance, QA, Code and Anti AI-Slop scanners (URL or GitHub repo)",
@@ -87,6 +88,9 @@ export default function ScannerPage() {
             AI-writing patterns.
           </p>
         </section>
+
+        {/* AI-VPS promo badge (Task 43) — sits between the hero and the scanner grid */}
+        <AiVpsBadge />
 
         <section id="security" aria-label="Scanner" className="scroll-mt-24">
           <ScannerApp />
