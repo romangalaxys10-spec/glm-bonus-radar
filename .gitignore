@@ -77,3 +77,4 @@ scripts/
 /zai-hosting-patcher/
 .zscripts/cache/
 .zscripts/*.bak.*
+.smart/
