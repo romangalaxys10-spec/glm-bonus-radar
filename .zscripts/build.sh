@@ -56,6 +56,23 @@ pack() {
   # a) boot entry — POSIX sh, must sit at the tar root
   install -m 755 /home/z/my-project/.zscripts/start.sh "$STANDALONE/start.sh"
 
+  # a2) portable QA browser pack (v5 fix 2026-10-02: prod FC image is slim —
+  #     binary found but launch failed -> "browser failed" chip). The pack
+  #     (binary + non-glibc lib closure + fonts, assembled by
+  #     scripts/qa_browser_pack.sh) rides IN the artifact so /app/.browsers
+  #     wins discovery and LD_LIBRARY_PATH covers missing system libs.
+  if [ -x /home/z/my-project/.browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell ]; then
+    rm -rf "$STANDALONE/.browsers"
+    cp -a /home/z/my-project/.browsers "$STANDALONE/.browsers"
+  else
+    echo "[build.sh] WARN: no .browsers pack present — auto-QA will rely on host cache" >> "$LOG" 2>/dev/null || true
+  fi
+  # a3) playwright-core CLI for the runtime auto-heal path (output tracing
+  #     keeps lib/ but not cli.js, so the install spawn silently no-oped)
+  if [ -f /home/z/my-project/node_modules/playwright-core/cli.js ] && [ -d "$STANDALONE/node_modules/playwright-core" ] && [ ! -f "$STANDALONE/node_modules/playwright-core/cli.js" ]; then
+    cp -f /home/z/my-project/node_modules/playwright-core/cli.js "$STANDALONE/node_modules/playwright-core/cli.js"
+  fi
+
   # b) SQLite DB with current data (prisma CLI is not in the standalone
   #    bundle, so the schema cannot be pushed at boot — ship it ready)
   mkdir -p "$STANDALONE/db"
@@ -72,7 +89,13 @@ pack() {
   #    path; start.sh's export overrides it, but keep the file consistent too)
   printf 'DATABASE_URL=file:/app/db/custom.db\n' > "$STANDALONE/.env"
 
-  tar -czf "$1" -C "$STANDALONE" .
+  # e) tar + gzip -1 (measured 2026-10-02: gzip -6 of ~640MB raw took 18s —
+  #    outside the pipeline window; -1 takes ~7s. Junk Next copies from the
+  #    project root (skills/ 61M, download/, src/, ...) is excluded — runtime
+  #    never reads it. Artifact with browser: ~176MB (the 207MB artifact
+  #    already shipped fine on 2026-10-02 14:48).
+  EXCL="--exclude=./skills --exclude=./download --exclude=./upload --exclude=./tool-results --exclude=./zai-hosting-patcher --exclude=./mailserver --exclude=./scripts --exclude=./src --exclude=./dev.log --exclude=./worklog.md --exclude=./tsconfig.tsbuildinfo --exclude=./Caddyfile --exclude=./bun.lock --exclude=./eslint.config.mjs --exclude=./components.json --exclude=./postcss.config.mjs --exclude=./tailwind.config.ts"
+  tar -c $EXCL -C "$STANDALONE" . | gzip -1 > "$1"
 }
 
 kick_rebuild() {

@@ -77,3 +77,16 @@ scripts/
 /zai-hosting-patcher/
 .zscripts/cache/
 .zscripts/*.bak.*
+.smart/
+.research/
+
+# GLM mail server runtime state
+mailserver/spool/
+mailserver/logs/
+mailserver/mailboxes/
+mailserver/server.pid
+mailserver/relay.env
+mailserver/test-body.txt
+mailserver/__pycache__/
+mailserver/.inbox.json
+.browsers/

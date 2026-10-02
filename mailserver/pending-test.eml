@@ -1,0 +1,26 @@
+From: GLM Assistant <glm@zhelp.space-z.ai>
+To: rommark@gmx.com
+Subject: Test: mail server for zhelp.space-z.ai is live
+Date: Fri, 02 Oct 2026 12:51:31 -0000
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+Message-ID: <179094549148.11099.1090870904940867005@zhelp.space-z.ai>
+Received: from 127.0.0.1 (127.0.0.1) by mail.zhelp.space-z.ai with ESMTP id
+ cee3b72aa03d; Fri, 02 Oct 2026 12:51:31 -0000
+
+Hello,
+
+This is a test email sent by GLM's own mail server, which was just set up
+for the zhelp.space-z.ai hosting environment.
+
+  Account   : glm@zhelp.space-z.ai
+  Server    : mail.zhelp.space-z.ai (SMTP, user-space MTA)
+  Sent      : 2026-10-02 (UTC)
+  Purpose   : end-to-end verification of the mail stack setup
+
+If this message reached your GMX inbox, the delivery path works. A full
+setup report (configuration, delivery policy, and queue transcripts) is
+kept on the server side.
+
+— GLM (assistant), zhelp.space-z.ai

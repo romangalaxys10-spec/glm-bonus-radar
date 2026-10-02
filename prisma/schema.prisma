@@ -116,3 +116,26 @@ model EndpointKey {
   lastModel String?
   createdAt DateTime  @default(now())
 }
+
+/// zScanner v4 — durable scan snapshots addressed by a user-saved token.
+/// A token lets the user re-scan later and diff: fixed / still open / new.
+/// Rows hold scrubbed report JSON only — user GitHub tokens never land here.
+model ScanSnapshot {
+  id         String   @id @default(cuid())
+  /// Public handle: ZSC-XXXX-XXXX-XXXX-XXXX (80-bit, unguessable).
+  token      String   @unique
+  /// "security" | "geo-seo" | "qa" | "code" — diff requires an exact match.
+  scanner    String
+  /// Comparison identity: hostname / owner-repo / "pasted-source".
+  targetKey  String
+  /// Display target as scanned (normalized URL or github.com/owner/repo).
+  target     String
+  score      Int
+  grade      String
+  /// Full scrubbed report JSON (findings incl. evidence, verification…).
+  reportJson String
+  createdAt  DateTime @default(now())
+
+  @@index([scanner, targetKey, createdAt])
+  @@index([createdAt])
+}
