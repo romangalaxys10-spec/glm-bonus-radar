@@ -4,31 +4,35 @@
  * Mount point for the immersive Remotion simulation ad on /agent.
  *
  * The player itself is client-only (dynamic import, ssr:false — the page
- * around it stays a server component). Chrome chips ("SIMULATED AD" /
- * "Powered by xShredo") are real HTML pinned OVER the player so the
- * sponsorship and the simulation label are visible even before the first
- * frame paints. Honors prefers-reduced-motion by not autoplaying; playback
- * stays one tap away via the player controls.
+ * around it stays a server component). Seamless-embedding details: the
+ * container width is measured with a ResizeObserver and the matching
+ * composition variant (desktop 1280×720 / mobile 400×740) is rendered, so
+ * phone visitors get phone-proportioned type instead of a shrunken desktop
+ * canvas; the loading fallback reserves the same shape; and the player
+ * fades itself in on mount so the chunk swap never visibly pops. Chrome
+ * chips ("SIMULATED AD" / "Powered by xShredo") are real HTML pinned OVER
+ * the player so the sponsorship and the simulation label stay visible.
+ * Honors prefers-reduced-motion by not autoplaying; playback stays one tap
+ * away via the player controls.
  */
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRemotionVariant, type RemotionVariant } from "./remotion-embed";
 
 const AgentAdPlayer = dynamic(() => import("./agent-ad-player"), {
   ssr: false,
   loading: () => (
     <div
       aria-hidden
-      className="flex aspect-video w-full items-center justify-center bg-[#0a0e0b]"
-    >
-      <p className="font-mono text-[13px] tracking-[0.14em] text-[#7e8a7e]">
-        loading simulation<span className="animate-pulse">▍</span>
-      </p>
-    </div>
+      className="aspect-video w-full bg-[#0a0e0b] max-[640px]:aspect-[20/37]"
+    />
   ),
 });
 
 export function AgentAdStage() {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const variant = useRemotionVariant(measureRef);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -40,17 +44,18 @@ export function AgentAdStage() {
   }, []);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-[#2c3326] bg-[#0a0e0b] shadow-[0_24px_70px_-30px_rgba(0,0,0,0.65)]">
-      <AgentAdPlayer autoPlay={!reducedMotion} />
+    <div ref={measureRef} className="relative overflow-hidden rounded-2xl border border-[#2c3326] bg-[#0a0e0b] shadow-[0_18px_55px_-30px_rgba(0,0,0,0.6)]">
+      <AgentAdPlayer key={variant} autoPlay={!reducedMotion} variant={variant as RemotionVariant} />
 
       {/* persistent chrome — always visible, never covered by playback */}
-      <div className="pointer-events-none absolute left-4 top-4 flex flex-wrap gap-2" aria-hidden>
-        <span className="rounded-full border border-[#3a4437] bg-[#0a0e0b]/85 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#cfdccf] backdrop-blur-sm">
+      <div
+        className="pointer-events-none absolute left-3 right-3 top-3 flex flex-wrap items-start justify-between gap-2 md:left-4 md:right-4 md:top-4"
+        aria-hidden
+      >
+        <span className="rounded-full border border-[#3a4437] bg-[#0a0e0b]/85 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-[#cfdccf] backdrop-blur-sm md:text-[10px] md:tracking-[0.18em]">
           simulated ad · walkthrough
         </span>
-      </div>
-      <div className="pointer-events-none absolute right-4 top-4" aria-hidden>
-        <span className="rounded-full border border-[#3a4437] bg-[#0a0e0b]/85 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#8fd694] backdrop-blur-sm">
+        <span className="rounded-full border border-[#3a4437] bg-[#0a0e0b]/85 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-[#8fd694] backdrop-blur-sm md:text-[10px] md:tracking-[0.18em]">
           powered by xShredo
         </span>
       </div>
