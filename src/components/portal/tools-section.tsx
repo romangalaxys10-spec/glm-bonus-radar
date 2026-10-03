@@ -85,6 +85,26 @@ function ToolIconGlyph({ icon }: { icon: ToolIcon }) {
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
       );
+    case "gamepad":
+      // Feather-style gamepad: body + d-pad cross + two action buttons.
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className="h-4 w-4"
+        >
+          <line x1="6" y1="12" x2="10" y2="12" />
+          <line x1="8" y1="10" x2="8" y2="14" />
+          <line x1="15" y1="13" x2="15.01" y2="13" />
+          <line x1="18" y1="11" x2="18.01" y2="11" />
+          <rect x="2" y="7" width="20" height="10" rx="5" />
+        </svg>
+      );
     case "article":
     default:
       return (

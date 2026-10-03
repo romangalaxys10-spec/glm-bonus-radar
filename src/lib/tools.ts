@@ -9,7 +9,7 @@
  *     which was battle-tested on this very portal (zhelp.space-z.ai).
  */
 
-export type ToolIcon = "github" | "article" | "terminal" | "layers" | "scan" | "search";
+export type ToolIcon = "github" | "article" | "terminal" | "layers" | "scan" | "search" | "gamepad";
 export type ToolKind = "tutorial" | "open source" | "review" | "guide" | "built-in";
 
 export type Tool = {
@@ -48,6 +48,17 @@ export const TOOLS: Tool[] = [
     icon: "search",
     tagline:
       "The radar's own GEO-first search engine: it searches the live web the way generative engines read it. Instead of SEO, every result is scored for citability, structure, freshness and entity clarity — and an AI answer preview shows which sources actually get cited inside AI answers.",
+    internal: true,
+  },
+  {
+    id: "zfun",
+    name: "zFun",
+    url: "/fun",
+    host: "this app",
+    kind: "built-in",
+    icon: "gamepad",
+    tagline:
+      "The radar's built-in arcade: ten playable 8-bit classics — snake, blocks, breakout, pong, invaders, flap, runner, merge, mines and simon — rendered on pixel canvases in your browser. Keyboard on desktop, touch pads on the phone, best scores stored locally and synced with nothing.",
     internal: true,
   },
   {

@@ -322,3 +322,9 @@
 .zs-mono {
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+/* zFun arcade — 8-bit HUD type (Press Start 2P is loaded page-locally on /fun;
+   elsewhere this class simply falls back to the mono stack). */
+.zs-pixel {
+  font-family: "Press Start 2P", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}

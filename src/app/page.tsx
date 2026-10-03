@@ -30,6 +30,7 @@ const NAV = [
   { href: "#tools", label: "tools" },
   { href: "/scanner", label: "scanner" },
   { href: "/search", label: "geo search" },
+  { href: "/fun", label: "zfun" },
 ];
 
 const GITHUB_REPO = "https://github.com/romangalaxys10-spec/glm-bonus-radar";
@@ -49,6 +50,19 @@ export function SearchGlyph({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
       <circle cx="11" cy="11" r="7" />
       <line x1="20.5" y1="20.5" x2="15.9" y2="15.9" />
+    </svg>
+  );
+}
+
+/** Feather-style gamepad glyph for the zFun hero chip. */
+export function GamePadGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <line x1="6" y1="12" x2="10" y2="12" />
+      <line x1="8" y1="10" x2="8" y2="14" />
+      <line x1="15" y1="13" x2="15.01" y2="13" />
+      <line x1="18" y1="11" x2="18.01" y2="11" />
+      <rect x="2" y="7" width="20" height="10" rx="5" />
     </svg>
   );
 }
@@ -154,6 +168,16 @@ export default function Home() {
             >
               <SearchGlyph className="h-4 w-4 text-[var(--rc-accent)]" />
               Try zSearch
+              <span aria-hidden className="font-mono">
+                →
+              </span>
+            </Link>
+            <Link
+              href="/fun"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rc-border)] bg-[var(--rc-surface)] px-4 py-2 text-sm font-semibold shadow-md transition-transform hover:scale-[1.03] active:scale-95"
+            >
+              <GamePadGlyph className="h-4 w-4 text-[var(--rc-accent)]" />
+              Play zFun
               <span aria-hidden className="font-mono">
                 →
               </span>
