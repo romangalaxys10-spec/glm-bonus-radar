@@ -77,6 +77,7 @@ const GREETING: Omit<ChatMsg, "id"> = {
 };
 
 const SUGGESTIONS = [
+  "Where can I run my AI agents 24/7?",
   "When are off-peak hours and how much do I save?",
   "How does the 10% OFF invite code work?",
   "What's included in the Flash campaign?",
