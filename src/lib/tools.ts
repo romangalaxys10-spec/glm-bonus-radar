@@ -9,7 +9,7 @@
  *     which was battle-tested on this very portal (zhelp.space-z.ai).
  */
 
-export type ToolIcon = "github" | "article" | "terminal" | "layers" | "scan";
+export type ToolIcon = "github" | "article" | "terminal" | "layers" | "scan" | "search";
 export type ToolKind = "tutorial" | "open source" | "review" | "guide" | "built-in";
 
 export type Tool = {
@@ -37,6 +37,17 @@ export const TOOLS: Tool[] = [
     icon: "scan",
     tagline:
       "The radar's own scanner suite, five online scanners with live progress + ETA: Security Audit (headers, CORS, exposure probes, leaked secrets), SEO/GEO/Performance (AI-crawler policy, llms.txt, TTFB, payload), a QA reliability audit, an Auto QA Auditor that drives the app in a real browser end-to-end (asks for logins before the run, pauses to ask questions mid-run, runs axe a11y, 375px responsive, perf timings) and a heuristic Code Reviewer. Each accepts a website/IP or a GitHub repo (private repos via a token kept in memory only), re-verifies findings before reporting, and ends with a copy-paste fix prompt for your dev agent.",
+    internal: true,
+  },
+  {
+    id: "zsearch",
+    name: "zSearch",
+    url: "/search",
+    host: "this app",
+    kind: "built-in",
+    icon: "search",
+    tagline:
+      "The radar's own GEO-first search engine: it searches the live web the way generative engines read it. Instead of SEO, every result is scored for citability, structure, freshness and entity clarity — and an AI answer preview shows which sources actually get cited inside AI answers.",
     internal: true,
   },
   {

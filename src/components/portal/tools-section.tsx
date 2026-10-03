@@ -69,6 +69,22 @@ function ToolIconGlyph({ icon }: { icon: ToolIcon }) {
           <line x1="7" y1="12" x2="17" y2="12" />
         </svg>
       );
+    case "search":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className="h-4 w-4"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      );
     case "article":
     default:
       return (

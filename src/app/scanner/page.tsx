@@ -21,6 +21,7 @@ const NAV = [
   { href: "#security", label: "auto qa" },
   { href: "#security", label: "code" },
   { href: "#security", label: "anti-slop" },
+  { href: "/search", label: "geo search" },
 ];
 
 export default function ScannerPage() {
