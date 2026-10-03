@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AgentAdStage } from "@/components/portal/agent-ad-remotion";
 import { ThemeSwitch } from "@/components/portal/theme-switch";
 import { GitHubMark } from "@/components/portal/scanner-icons";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
@@ -261,6 +262,26 @@ export default function AgentPage() {
                 <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--rc-text-dim)]">{k}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------- */}
+        {/* Immersive Remotion simulation ad                            */}
+        {/* ---------------------------------------------------------- */}
+        <section aria-label="Simulation: a day on the 24x7 Agent box" className="scroll-mt-24 pb-14">
+          <SectionHeader
+            eyebrow="immersive simulation"
+            title="Watch a box run for a day"
+            blurb="A 16-second simulated walkthrough — the 02:00 laptop death, the one-command deploy, and the dashboard that never sleeps. Rendered in-app with Remotion; every number matches the sponsor's promo."
+          />
+          <div className="max-w-4xl">
+            <AgentAdStage />
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <DeployCta utmContent="remotion-ad" />
+            <p className="font-mono text-[12px] text-[var(--rc-text-dim)]">
+              simulated ad · real specs from the sponsor&apos;s promo page · powered by xShredo
+            </p>
           </div>
         </section>
 
