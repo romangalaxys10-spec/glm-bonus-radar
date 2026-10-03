@@ -15,5 +15,17 @@ export const metadata: Metadata = {
 };
 
 export default function SearchPage() {
-  return <SearchClient />;
+  return (
+    <>
+      {/* zSearch uses the xShredo promo aesthetic: fixed dark canvas + IBM Plex
+          typography, independent of the portal palette — fonts load page-locally. */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      />
+      <SearchClient />
+    </>
+  );
 }

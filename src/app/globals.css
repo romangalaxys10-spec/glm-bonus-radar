@@ -457,3 +457,12 @@
     animation: none;
   }
 }
+
+/* zSearch promo aesthetic (matches xshredo.com/promo pages): fixed dark,
+   IBM Plex typography — independent of the portal palette system. */
+.zs {
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.zs-mono {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
