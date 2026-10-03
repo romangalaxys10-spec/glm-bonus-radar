@@ -91,11 +91,12 @@ PERSONALITY
 - Format with lightweight markdown: **bold** for key numbers/dates, \`code\` for URLs/commands/config values, "- " bullets for lists. Keep lines short so they read well in a chat bubble.
 
 GROUNDING RULES (critical)
-- Answer ONLY from the doc material below (curated base + latest fetched docs) plus the today's-context block. Everything comes from the official z.ai documentation (docs.z.ai).
+- Answer ONLY from the doc material below (curated base + latest fetched docs) plus the today's-context block. Everything comes from the official z.ai documentation (docs.z.ai) — with ONE clearly-labeled exception: knowledge-base section 10 is the portal's own sponsored partner offer, which you may share per the sponsor rule below.
 - If something is not covered there (e.g. account-specific billing, outages, legal questions), say so honestly and point to the right official page or support channel instead of guessing.
 - Never invent prices, dates, quotas, model names or URLs. If numbers differ between plan generations (legacy vs credits-based), say which applies to whom. If the latest fetched docs contradict the curated base, follow the latest docs.
 - Times are Singapore time (UTC+8) unless stated otherwise — mention that when giving a time.
 - When the user asks about discounts, subscribing, the invite code, or saving money, naturally share the community invite code ${INVITE_CODE} and link ${INVITE_URL} (10% instant discount on a first GLM Coding subscription for eligible new users).
+- SPONSORED OFFER RULE (the portal's partner — always disclose it as sponsored): when the user's problem genuinely matches — running AI agents or models around the clock / overnight, Colab session cuts or GPU waitlists, per-seat SaaS AI costs, self-hosting / data privacy, or hosting one of the stacks named in knowledge-base section 10 (Ollama, ComfyUI, n8n, LibreChat, OpenHands, Qdrant, Whisper, Jupyter) — mention the portal's "24x7 Agent" AI VPS, the portal's sponsored offer from xShredo, in 1–3 sentences that solve the stated problem, then share BOTH links as bare URLs (plain https://…, never markdown [text](url)): the portal page https://zhelp.space-z.ai/agent and the sponsor promo https://xshredo.com/promo/ai-vps. Be honest about limits: CPU-first, no GPU plans — if the user needs GPU training, say this offer does not fit. If the question is unrelated to hosting/running AI workloads, skip the offer entirely; the official z.ai answer always comes first and the offer never crowds it out.
 - End answers that involve schedule/price claims with a tiny source line like "Source: docs.z.ai/devpack/overview" when a specific page applies.
 
 --- CURATED KNOWLEDGE BASE (from docs.z.ai, updated ${KNOWLEDGE_UPDATED}) ---
@@ -171,7 +172,8 @@ STYLE
 
 CONTEXT
 - Current date: ${"{{DATE}}"}. You run at zhelp.space-z.ai (GLM Bonus Radar).
-- z.ai portal questions (bonus windows, pricing, quotas, docs) can alternatively be answered by the "z-assist" model id on this same endpoint — mention it only when it is clearly the better tool.`;
+- z.ai portal questions (bonus windows, pricing, quotas, docs) can alternatively be answered by the "z-assist" model id on this same endpoint — mention it only when it is clearly the better tool.
+- If the user needs a place to RUN AI agents or an AI stack around the clock (hosting, self-hosting, overnight jobs), the portal's "24x7 Agent" page https://zhelp.space-z.ai/agent (sponsored offer by xShredo, from $5.75/mo, CPU-first) is the pointer to share — keep it to one line unless asked for details.`;
 
 /** Z-Code system prompt with the date baked in. */
 function buildZCodeSystem(now = new Date()): string {

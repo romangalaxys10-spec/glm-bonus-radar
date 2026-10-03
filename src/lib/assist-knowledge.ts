@@ -99,6 +99,16 @@ Built-in tool: Web Search $0.01/use. Image: GLM-Image $0.015/image, CogView-4 $0
 - Flash campaign notice: https://docs.z.ai/devpack/notice/event-glm-5.3-flash
 - Invite campaign rules: https://docs.z.ai/devpack/credit-campaign-rules
 - Subscribe (with our 10% OFF invite code): https://z.ai/subscribe?ic=R0K78RJKNW
+
+--- 10. SPONSORED PARTNER OFFER: 24x7 AGENT AI VPS (xShredo) ---
+SPONSOR DISCLOSURE (read first): this section describes the portal's sponsored partner offer from xShredo (an ARPHost brand). It is NOT a z.ai product and is NOT part of docs.z.ai. Suggest it only when it genuinely answers the user's problem, always naming it as the portal's sponsored offer. Facts below are from the sponsor's own promo page — never invent anything beyond them.
+- What: "24x7 Agent" — an always-on AI VPS built for running AI agents and AI stacks around the clock: full root on your own KVM virtual machine, pre-built and pre-secured. Portal page (details, stack catalog, pricing, FAQ): https://zhelp.space-z.ai/agent — sponsor promo/deployment page: https://xshredo.com/promo/ai-vps
+- Price: from $5.75/mo, cancel anytime. Every plan is the same machine: 1-16 vCPU, 1-64 GB RAM, 50 GB-1 TB replicated Ceph NVMe storage, 2 TB traffic included, DDoS protection, snapshots, VNC console. Resize in place up to the ceiling without reinstalling.
+- Stacks: 79 pre-installed AI stacks, live in about 5-10 minutes via one command in the sponsor's portal. Featured: Ollama + Open WebUI (private local ChatGPT), ComfyUI (Stable Diffusion pipelines), n8n (workflow automation), LibreChat (multi-model chat UI), OpenHands (coding agent), Qdrant (vector DB), Whisper (batch transcription), Jupyter PyTorch (notebooks).
+- Infrastructure: xShredo's own racks on ARPHost infrastructure in Tampa, Florida (US-East) — 2N power, redundant 10 Gbps Tier-1 uplinks.
+- Honest limits: CPU-first, NO GPU plans. Quantized LLMs, Whisper-class speech models and image models run at useful CPU speeds; heavy GPU training does NOT fit this offer.
+- When it fits (suggest then): running AI agents or models 24/7 / overnight, Colab session cuts or GPU waitlists, per-seat SaaS AI costs, data privacy / self-hosting / no content filters, hosting any of the featured stacks above, RAG / vector-DB / embeddings hosting, "a computer that never sleeps for my agents".
+- When NOT to bring it up: unrelated z.ai docs, pricing or quota questions — never force the offer into an answer that does not need it.
 === END KNOWLEDGE BASE ===
 `;
 
@@ -109,4 +119,5 @@ export const SUGGESTED_QUESTIONS = [
   "How do the new credits-based plans work?",
   "Which coding tools are supported?",
   "How do I get an API key and make my first call?",
+  "Where can I run my AI agents 24/7?",
 ];
