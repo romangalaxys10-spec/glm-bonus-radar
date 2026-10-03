@@ -13,6 +13,7 @@ import { ZAssist, AskZAssistLink } from "@/components/portal/z-assist";
 import { NotifyEngine, NotificationsBell } from "@/components/portal/notifications-center";
 import { DataFreshnessBadge } from "@/components/portal/data-freshness";
 import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
+import { ScannerAdBanner } from "@/components/portal/scanner-ad-remotion";
 import { AiVpsBanner } from "@/components/portal/ai-vps-banner";
 import { AgentNavButton } from "@/components/portal/agent-nav-button";
 import { CnOpsSection } from "@/components/portal/cn-ops-section";
@@ -140,6 +141,7 @@ export default function Home() {
             <DataFreshnessBadge />
           </div>
           <AnnouncementsStrip />
+          <ScannerAdBanner />
           <AiVpsBanner />
         </section>
 
