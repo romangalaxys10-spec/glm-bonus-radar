@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * zFun lobby — ten 8-bit games, playable right here.
+ * zFun lobby — thirty 8-bit games, playable right here.
  * Lobby grid + inline cabinet mount with ?g= deep links. Scores are
  * localStorage-only; nothing about the games is fetched or simulated.
  */
@@ -27,6 +27,26 @@ const GAME_VIEWS: Record<string, ComponentType> = {
   merge: dynamic(() => import("./games/merge"), { ssr: false, loading: () => <LoadStub /> }),
   mines: dynamic(() => import("./games/mines"), { ssr: false, loading: () => <LoadStub /> }),
   simon: dynamic(() => import("./games/simon"), { ssr: false, loading: () => <LoadStub /> }),
+  asteroids: dynamic(() => import("./games/asteroids"), { ssr: false, loading: () => <LoadStub /> }),
+  hopper: dynamic(() => import("./games/hopper"), { ssr: false, loading: () => <LoadStub /> }),
+  muncher: dynamic(() => import("./games/muncher"), { ssr: false, loading: () => <LoadStub /> }),
+  kong: dynamic(() => import("./games/kong"), { ssr: false, loading: () => <LoadStub /> }),
+  lander: dynamic(() => import("./games/lander"), { ssr: false, loading: () => <LoadStub /> }),
+  missile: dynamic(() => import("./games/missile"), { ssr: false, loading: () => <LoadStub /> }),
+  racer: dynamic(() => import("./games/racer"), { ssr: false, loading: () => <LoadStub /> }),
+  cycle: dynamic(() => import("./games/cycle"), { ssr: false, loading: () => <LoadStub /> }),
+  bomber: dynamic(() => import("./games/bomber"), { ssr: false, loading: () => <LoadStub /> }),
+  cubes: dynamic(() => import("./games/cubes"), { ssr: false, loading: () => <LoadStub /> }),
+  memory: dynamic(() => import("./games/memory"), { ssr: false, loading: () => <LoadStub /> }),
+  whack: dynamic(() => import("./games/whack"), { ssr: false, loading: () => <LoadStub /> }),
+  stacker: dynamic(() => import("./games/stacker"), { ssr: false, loading: () => <LoadStub /> }),
+  xo: dynamic(() => import("./games/xo"), { ssr: false, loading: () => <LoadStub /> }),
+  ships: dynamic(() => import("./games/ships"), { ssr: false, loading: () => <LoadStub /> }),
+  slots: dynamic(() => import("./games/slots"), { ssr: false, loading: () => <LoadStub /> }),
+  pinball: dynamic(() => import("./games/pinball"), { ssr: false, loading: () => <LoadStub /> }),
+  hangman: dynamic(() => import("./games/hangman"), { ssr: false, loading: () => <LoadStub /> }),
+  punch: dynamic(() => import("./games/punch"), { ssr: false, loading: () => <LoadStub /> }),
+  maze: dynamic(() => import("./games/maze"), { ssr: false, loading: () => <LoadStub /> }),
 };
 
 function LoadStub() {
@@ -79,6 +99,26 @@ const GLYPHS: Record<string, string[]> = {
   merge: ["11102220", "11102220", "11102220", "00000000", "22201110", "22201110", "22201110", "00000000"],
   mines: ["00100100", "01111110", "11111111", "11121111", "11111111", "01111110", "00100100", "00000000"],
   simon: ["11102220", "11102220", "11102220", "00011000", "22202220", "22202220", "22202220", "00000000"],
+  asteroids: ["00010000", "00101000", "00000100", "11000010", "01111100", "10001110", "00000000", "00000000"],
+  hopper: ["00111100", "01000010", "01111110", "11011011", "01111110", "00100100", "01111110", "00000020"],
+  muncher: ["00111110", "01111110", "11111100", "11111000", "11111100", "01111110", "00111110", "00000000"],
+  kong: ["11110110", "11111110", "01111100", "00010000", "01010100", "01010100", "01010100", "22222222"],
+  lander: ["00010000", "00111100", "01111110", "11011011", "01000010", "00100100", "01111110", "00000020"],
+  missile: ["00000100", "00000110", "00000111", "10011111", "00000111", "00000110", "00000100", "00000002"],
+  racer: ["00111100", "01111110", "11100111", "11100111", "01111110", "00111100", "00022000", "00000000"],
+  cycle: ["10000001", "10000001", "10000001", "10011111", "10000001", "11100001", "00000000", "00000000"],
+  bomber: ["00011100", "00001000", "01111110", "11111111", "11111111", "11111111", "01111110", "00111100"],
+  cubes: ["00011000", "00111100", "01111110", "00011000", "00111100", "11111111", "00000000", "00000020"],
+  memory: ["11100111", "10011001", "10011001", "11100111", "11100111", "10011001", "10011001", "11100222"],
+  whack: ["00000000", "00111100", "01111110", "11011011", "01111110", "00111100", "01111110", "00000000"],
+  stacker: ["00000000", "00000000", "00111000", "01111100", "00000000", "11111111", "11111111", "00022000"],
+  xo: ["11011011", "01101100", "00111000", "01101100", "11011011", "00000000", "00111100", "01100110"],
+  ships: ["00011000", "00111100", "01111110", "11111111", "00111100", "00100100", "11000011", "00000000"],
+  slots: ["00100010", "01110111", "00100010", "00111000", "01110111", "01110111", "00000000", "00022000"],
+  pinball: ["00000100", "00001010", "00010001", "00101000", "01010000", "10100000", "01100000", "00000020"],
+  hangman: ["11111110", "00010000", "00010000", "00010000", "01110100", "00010000", "00010000", "00000000"],
+  punch: ["00111100", "01111110", "11111111", "11111111", "01111110", "00111100", "00011000", "00000000"],
+  maze: ["11111110", "00000010", "01111110", "01000000", "01011110", "01000010", "01111010", "00000022"],
 };
 
 function PixelGlyph({ slug, className }: { slug: string; className?: string }) {
@@ -167,7 +207,7 @@ export function FunClient() {
     } catch {
       /* ignore */
     }
-    document.title = "zFun — Ten 8-bit games · GLM Bonus Radar";
+    document.title = "zFun — Thirty 8-bit games · GLM Bonus Radar";
     setBests(readBests());
   }, []);
 
@@ -227,7 +267,7 @@ export function FunClient() {
           <>
             <section aria-label="zFun arcade intro">
               <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500">
-                zfun arcade · 10 games · 0 installs
+                zfun arcade · 30 games · 0 installs
               </p>
               <div className="relative">
                 {/* blue radial glow — same hero treatment as the portal */}
@@ -240,13 +280,13 @@ export function FunClient() {
                   }}
                 />
                 <h1 className="mt-3 text-4xl font-light leading-[1.06] tracking-[-0.02em] text-zinc-50 md:text-6xl">
-                  Ten 8-bit games,
+                  Thirty 8-bit games,
                   <br />
                   <em className="italic text-zinc-400">played right here.</em>
                 </h1>
               </div>
               <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-zinc-400 md:text-lg">
-                A built-in arcade for the radar: ten small classics rendered on pixel canvases.
+                A built-in arcade for the radar: thirty small classics rendered on pixel canvases.
                 Keyboard on desktop, touch pads on the phone — every game runs entirely in your
                 browser, and your best scores never leave your device.
               </p>
@@ -330,7 +370,7 @@ export function FunClient() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-6 font-mono text-[12px] text-zinc-500 md:px-8">
           <span>zFun · part of GLM Bonus Radar</span>
           <span>
-            ten local games · no data leaves your device ·{" "}
+            thirty local games · no data leaves your device ·{" "}
             <Link href="/" className="text-[var(--rc-brand)] transition-colors hover:text-[var(--rc-accent)]">
               back to the radar
             </Link>

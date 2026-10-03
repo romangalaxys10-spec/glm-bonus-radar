@@ -58,7 +58,7 @@ export const TOOLS: Tool[] = [
     kind: "built-in",
     icon: "gamepad",
     tagline:
-      "The radar's built-in arcade: ten playable 8-bit classics — snake, blocks, breakout, pong, invaders, flap, runner, merge, mines and simon — rendered on pixel canvases in your browser. Keyboard on desktop, touch pads on the phone, best scores stored locally and synced with nothing.",
+      "The radar's built-in arcade: thirty playable 8-bit classics — snake, blocks, breakout, pong, invaders, asteroids, hopper, muncher, kong, lander, missile, racer, cycle, bomber, cubes, flap, runner, merge, mines, simon, memory, whack, stacker, xo, ships, slots, pinball, hangman, punch and maze — rendered on pixel canvases in your browser. Keyboard on desktop, touch pads on the phone, best scores stored locally and synced with nothing.",
     internal: true,
   },
   {

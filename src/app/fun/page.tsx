@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { FunClient } from "@/components/zfun/fun-client";
 
 export const metadata: Metadata = {
-  title: "zFun — Ten 8-bit games · GLM Bonus Radar",
+  title: "zFun — Thirty 8-bit games · GLM Bonus Radar",
   description:
-    "The radar's built-in arcade: ten playable 8-bit classics — snake, blocks, breakout, pong, invaders, flap, runner, merge, mines and simon — running entirely in your browser on desktop and phone. Keyboard and touch controls, best scores stored locally.",
+    "The radar's built-in arcade: thirty playable 8-bit classics — snake, blocks, breakout, pong, invaders, asteroids, hopper, muncher, kong, lander, missile, racer, cycle, bomber, cubes, flap, runner, merge, mines, simon, memory, whack, stacker, xo, ships, slots, pinball, hangman, punch and maze — running entirely in your browser on desktop and phone. Keyboard and touch controls, best scores stored locally.",
   keywords: [
     "8-bit games",
     "browser games",
@@ -14,15 +14,24 @@ export const metadata: Metadata = {
     "breakout",
     "pong",
     "space invaders",
-    "2048",
+    "asteroids",
+    "frogger",
+    "lunar lander",
+    "missile command",
+    "light cycles",
+    "bomberman",
+    "tic-tac-toe",
+    "battleship",
+    "pinball",
+    "hangman",
     "minesweeper",
     "zFun",
   ],
   alternates: { canonical: "/fun" },
   openGraph: {
-    title: "zFun — Ten 8-bit games, played right here",
+    title: "zFun — Thirty 8-bit games, played right here",
     description:
-      "A built-in arcade for the GLM Bonus Radar: ten pixel classics, keyboard on desktop, touch on phone, scores that never leave your device.",
+      "A built-in arcade for the GLM Bonus Radar: thirty pixel classics, keyboard on desktop, touch on phone, scores that never leave your device.",
     type: "website",
   },
 };

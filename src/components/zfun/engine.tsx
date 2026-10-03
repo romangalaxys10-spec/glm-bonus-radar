@@ -42,7 +42,18 @@ export const C = {
 /* Input — keyboard and on-screen pads feed one model.                 */
 /* ------------------------------------------------------------------ */
 
-export type Btn = "up" | "down" | "left" | "right" | "fire" | "action" | "flag";
+export type Btn =
+  | "up"
+  | "down"
+  | "left"
+  | "right"
+  | "fire"
+  | "action"
+  | "flag"
+  | "ul"
+  | "ur"
+  | "dl"
+  | "dr";
 
 const KEYMAP: Record<string, Btn> = {
   ArrowUp: "up",
@@ -59,6 +70,11 @@ const KEYMAP: Record<string, Btn> = {
   KeyK: "action",
   KeyX: "action",
   KeyF: "flag",
+  // diagonal hops (isometric cabinets)
+  KeyQ: "ul",
+  KeyE: "ur",
+  KeyZ: "dl",
+  KeyC: "dr",
 };
 
 export interface Input {
@@ -66,6 +82,8 @@ export interface Input {
   readonly held: ReadonlySet<Btn>;
   /** One-shot presses since the last drain (keyboard never auto-repeats). */
   drain(): Btn[];
+  /** A–Z key presses since the last drain (word-game channel). */
+  drainLetters(): string[];
   /** Virtual pad hookup: simulate a button press/release. */
   press(b: Btn, isDown: boolean): void;
 }
@@ -73,9 +91,14 @@ export interface Input {
 export function useInput(): Input {
   const held = useRef(new Set<Btn>());
   const edges = useRef<Btn[]>([]);
+  const letters = useRef<string[]>([]);
 
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
+      // Letters are additive: every A–Z key feeds the word-game channel,
+      // mapped keys (WASD, QEZC, …) additionally act as buttons.
+      const lm = /^Key([A-Z])$/.exec(e.code);
+      if (lm && !e.repeat) letters.current.push(lm[1]);
       const b = KEYMAP[e.code];
       if (!b) return;
       // A game is on screen: never let the page scroll under the player.
@@ -97,6 +120,7 @@ export function useInput(): Input {
       window.removeEventListener("blur", onBlur);
       held.current.clear();
       edges.current.length = 0;
+      letters.current.length = 0;
     };
   }, []);
 
@@ -107,6 +131,11 @@ export function useInput(): Input {
     drain() {
       const out = edges.current;
       edges.current = [];
+      return out;
+    },
+    drainLetters() {
+      const out = letters.current;
+      letters.current = [];
       return out;
     },
     press(b: Btn, isDown: boolean) {
