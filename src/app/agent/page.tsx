@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { AgentAdStage } from "@/components/portal/agent-ad-remotion";
-import { ThemeSwitch } from "@/components/portal/theme-switch";
 import { GitHubMark } from "@/components/portal/scanner-icons";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 
@@ -147,7 +146,7 @@ function SectionHeader({ eyebrow, title, blurb }: { eyebrow: string; title: stri
   return (
     <div className="mb-6 max-w-3xl">
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rc-accent)]">{eyebrow}</p>
-      <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight md:text-3xl">{title}</h2>
+      <h2 className="mt-1.5 font-display text-2xl font-light tracking-[-0.01em] text-[var(--rc-bright)] md:text-3xl">{title}</h2>
       <p className="mt-2 text-[15px] text-[var(--rc-text-dim)]">{blurb}</p>
     </div>
   );
@@ -210,9 +209,7 @@ export default function AgentPage() {
               github
             </a>
           </nav>
-          <div className="order-2 md:order-3">
-            <ThemeSwitch />
-          </div>
+          <div className="order-2 md:order-3" />
         </div>
       </header>
 
@@ -228,8 +225,8 @@ export default function AgentPage() {
             </span>
             ai vps · tampa, fl · us-east
           </p>
-          <h1 className="mt-4 max-w-3xl font-display text-4xl font-bold leading-[1.08] tracking-tight text-gradient md:text-6xl">
-            An AI Agent computer that never sleeps
+          <h1 className="mt-4 max-w-3xl font-display text-4xl font-light leading-[1.06] tracking-[-0.02em] text-[var(--rc-bright)] md:text-6xl">
+            An AI Agent computer <em className="italic text-[var(--rc-text-dim)]">that never sleeps</em>
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-[var(--rc-text-dim)]">
             79 AI stacks pre-installed. Live in about 10 minutes. Full root on your own KVM box — no queues, no

@@ -119,7 +119,7 @@ export default async function ChangelogPage() {
         >
           ← back to the radar
         </Link>
-        <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-gradient md:text-4xl">
+        <h1 className="mt-4 font-display text-3xl font-light tracking-[-0.01em] text-[var(--rc-bright)] md:text-4xl">
           AI changelog
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-[var(--rc-text-dim)]">

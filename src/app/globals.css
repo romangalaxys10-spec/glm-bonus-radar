@@ -6,9 +6,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -45,192 +45,47 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Palette variables — brook is the default (no data-palette needed).  */
-/* Light values on :root, dark values on .dark.                        */
+/* Palette variables — xShredo promo design (whole-app flip).          */
+/* Fixed dark canvas, single blue accent, zinc ramp. The legacy        */
+/* data-palette / light-dark system still exists (boot script,         */
+/* localStorage) but every palette now resolves to the same values.    */
 /* ------------------------------------------------------------------ */
 
 :root {
-  --radius: 0.625rem;
-  /* brook light */
-  --rc-bg: #eef2ec;
-  --rc-surface: #e5e6e7;
-  --rc-border: #a5ae9d;
-  --rc-text: #2e3830;
-  --rc-text-dim: #6f7a70;
-  --rc-bright: #202a22;
-  --rc-accent: #c2381a;
-  --rc-brand: #7091aa;
-  --rc-gone: #c63333;
-  --rc-on-accent: #fff7f3;
-  --rc-tone2: #db704d;
-  --rc-tone3: #a8822d;
+  --radius: 0.875rem;
+  /* xshredo promo */
+  --rc-bg: #050505;
+  --rc-surface: #0a0a0b;
+  --rc-border: rgba(255, 255, 255, 0.1);
+  --rc-text: #e4e4e7;
+  --rc-text-dim: #a1a1aa;
+  --rc-bright: #fafafa;
+  --rc-accent: #3b82f6;
+  --rc-brand: #60a5fa;
+  --rc-gone: #f87171;
+  --rc-on-accent: #ffffff;
+  --rc-tone2: #93c5fd;
+  --rc-tone3: #a1a1aa;
 }
 
+/* dark mode resolves identically — the design is fixed dark */
 .dark {
-  /* brook dark */
-  --rc-bg: #0f1510;
-  --rc-surface: #191d16;
-  --rc-border: #2c3326;
-  --rc-text: #dde6dd;
-  --rc-text-dim: #7e8a7e;
-  --rc-bright: #edf4ee;
-  --rc-accent: #e8533a;
-  --rc-brand: #7091aa;
-  --rc-gone: #ff6b6b;
-  --rc-on-accent: #1a0a05;
-  --rc-tone2: #db704d;
-  --rc-tone3: #a8822d;
-}
-
-[data-palette="cutthroat"] {
-  --rc-bg: #f4efe4;
-  --rc-surface: #ede5d0;
-  --rc-border: #c5cdad;
-  --rc-text: #3a322a;
-  --rc-text-dim: #7a6f5d;
-  --rc-bright: #2a231c;
-  --rc-accent: #c43a14;
-  --rc-brand: #c76d26;
-  --rc-gone: #c63333;
-  --rc-on-accent: #fff7ef;
-  --rc-tone2: #e76d20;
-  --rc-tone3: #e24c29;
-}
-
-.dark[data-palette="cutthroat"] {
-  --rc-bg: #141310;
-  --rc-surface: #191c10;
-  --rc-border: #303620;
-  --rc-text: #e4ddd0;
-  --rc-text-dim: #8c8472;
-  --rc-bright: #f5efe2;
-  --rc-accent: #e8633a;
-  --rc-brand: #c76d26;
-  --rc-gone: #ff6b6b;
-  --rc-on-accent: #000000;
-  --rc-tone2: #e76d20;
-  --rc-tone3: #e24c29;
-}
-
-[data-palette="gila"] {
-  --rc-bg: #f4ecdc;
-  --rc-surface: #f5d99b;
-  --rc-border: #e2cdaf;
-  --rc-text: #3c342a;
-  --rc-text-dim: #7c704f;
-  --rc-bright: #2c261b;
-  --rc-accent: #9c6a0f;
-  --rc-brand: #d9b044;
-  --rc-gone: #bf3636;
+  --rc-bg: #050505;
+  --rc-surface: #0a0a0b;
+  --rc-border: rgba(255, 255, 255, 0.1);
+  --rc-text: #e4e4e7;
+  --rc-text-dim: #a1a1aa;
+  --rc-bright: #fafafa;
+  --rc-accent: #3b82f6;
+  --rc-brand: #60a5fa;
+  --rc-gone: #f87171;
   --rc-on-accent: #ffffff;
-  --rc-tone2: #b8c232;
-  --rc-tone3: #e6b04b;
+  --rc-tone2: #93c5fd;
+  --rc-tone3: #a1a1aa;
 }
 
-.dark[data-palette="gila"] {
-  --rc-bg: #17130c;
-  --rc-surface: #231c11;
-  --rc-border: #453621;
-  --rc-text: #e8dfcd;
-  --rc-text-dim: #8e826a;
-  --rc-bright: #f7efdd;
-  --rc-accent: #e8a85c;
-  --rc-brand: #d9b044;
-  --rc-gone: #ff6b6b;
-  --rc-on-accent: #241806;
-  --rc-tone2: #b8c232;
-  --rc-tone3: #e6b04b;
-}
-
-[data-palette="brown"] {
-  --rc-bg: #f2f0e4;
-  --rc-surface: #f6ebaa;
-  --rc-border: #d9d0b5;
-  --rc-text: #383a2c;
-  --rc-text-dim: #767564;
-  --rc-bright: #2a2b1f;
-  --rc-accent: #7e6a14;
-  --rc-brand: #e09820;
-  --rc-gone: #bf3636;
-  --rc-on-accent: #fffbed;
-  --rc-tone2: #eca91f;
-  --rc-tone3: #ea8d1b;
-}
-
-.dark[data-palette="brown"] {
-  --rc-bg: #15140d;
-  --rc-surface: #232016;
-  --rc-border: #453f2b;
-  --rc-text: #e2e0cf;
-  --rc-text-dim: #868274;
-  --rc-bright: #f2f0e0;
-  --rc-accent: #c9a936;
-  --rc-brand: #e09820;
-  --rc-gone: #ff6b6b;
-  --rc-on-accent: #1c1a0c;
-  --rc-tone2: #eca91f;
-  --rc-tone3: #ea8d1b;
-}
-
-[data-palette="rainbow"] {
-  --rc-bg: #eef2f5;
-  --rc-surface: #eaeaea;
-  --rc-border: #b5be9d;
-  --rc-text: #2c3640;
-  --rc-text-dim: #6a7682;
-  --rc-bright: #1f2832;
-  --rc-accent: #bc3f63;
-  --rc-brand: #5c9384;
-  --rc-gone: #c63333;
-  --rc-on-accent: #ffffff;
-  --rc-tone2: #cd8125;
-  --rc-tone3: #649f75;
-}
-
-.dark[data-palette="rainbow"] {
-  --rc-bg: #0f1416;
-  --rc-surface: #1f2216;
-  --rc-border: #2e331d;
-  --rc-text: #d8e2e6;
-  --rc-text-dim: #7a858c;
-  --rc-bright: #e8f0f4;
-  --rc-accent: #e86f8a;
-  --rc-brand: #5c9384;
-  --rc-gone: #ff6b6b;
-  --rc-on-accent: #1a0a10;
-  --rc-tone2: #cd8125;
-  --rc-tone3: #649f75;
-}
-
-[data-palette="mackinaw"] {
-  --rc-bg: #edf3ee;
-  --rc-surface: #dcebe0;
-  --rc-border: #a9c4b0;
-  --rc-text: #24352b;
-  --rc-text-dim: #66807a;
-  --rc-bright: #14251c;
-  --rc-accent: #0e8a57;
-  --rc-brand: #2e8f7a;
-  --rc-gone: #c63333;
-  --rc-on-accent: #ffffff;
-  --rc-tone2: #1f9d6d;
-  --rc-tone3: #56b385;
-}
-
-.dark[data-palette="mackinaw"] {
-  --rc-bg: #0c1411;
-  --rc-surface: #14201a;
-  --rc-border: #244032;
-  --rc-text: #d9e6de;
-  --rc-text-dim: #79928a;
-  --rc-bright: #ecf5ef;
-  --rc-accent: #35c48d;
-  --rc-brand: #58a6a8;
-  --rc-gone: #ff6b6b;
-  --rc-on-accent: #06130c;
-  --rc-tone2: #6fcfa5;
-  --rc-tone3: #a3d9b1;
-}
+/* Legacy palette selectors intentionally removed — all palettes resolve
+   to the xShredo promo values above regardless of data-palette. */
 
 /* ------------------------------------------------------------------ */
 /* Map palette variables onto shadcn tokens                            */
@@ -276,8 +131,9 @@
     @apply border-border outline-ring/50;
   }
   html {
-    color-scheme: light;
+    color-scheme: dark;
     scroll-behavior: smooth;
+    background: var(--rc-bg);
   }
   html.dark {
     color-scheme: dark;
@@ -458,8 +314,8 @@
   }
 }
 
-/* zSearch promo aesthetic (matches xshredo.com/promo pages): fixed dark,
-   IBM Plex typography — independent of the portal palette system. */
+/* zSearch promo page classes — kept for the /search page, now matching
+   the portal-wide IBM Plex stack. */
 .zs {
   font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }

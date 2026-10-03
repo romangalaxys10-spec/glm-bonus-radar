@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ThemeSwitch } from "@/components/portal/theme-switch";
 import { ScannerApp } from "@/components/portal/scanner-app";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { GitHubMark } from "@/components/portal/scanner-icons";
@@ -63,9 +62,7 @@ export default function ScannerPage() {
               github
             </a>
           </nav>
-          <div className="order-2 md:order-3">
-            <ThemeSwitch />
-          </div>
+          <div className="order-2 md:order-3" />
         </div>
       </header>
 
@@ -74,8 +71,8 @@ export default function ScannerPage() {
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rc-accent)]">
             zscanner · six scanners · no signup
           </p>
-          <h1 className="mt-1.5 font-display text-4xl font-bold leading-[1.08] tracking-tight text-gradient md:text-5xl">
-            Scan it before they rate it
+          <h1 className="mt-1.5 font-display text-4xl font-light leading-[1.06] tracking-[-0.02em] text-[var(--rc-bright)] md:text-5xl">
+            Scan it before <em className="italic text-[var(--rc-text-dim)]">they rate it</em>
           </h1>
           <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[var(--rc-text-dim)]">
             The scanner suite behind the GLM Bonus Radar, opened up. Audit a URL&apos;s security posture (headers, CORS,

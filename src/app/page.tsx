@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ThemeSwitch } from "@/components/portal/theme-switch";
 import {
   GoldenStrip,
   LiveTable,
@@ -129,7 +128,6 @@ export default function Home() {
           </nav>
           <div className="order-2 flex items-center gap-2 md:order-3">
             <NotificationsBell />
-            <ThemeSwitch />
           </div>
         </div>
       </header>
@@ -137,9 +135,10 @@ export default function Home() {
       <main id="top" className="mx-auto w-full max-w-6xl flex-1 px-5 pb-24 pt-12 md:px-8">
         {/* Hero */}
         <section className="pb-10">
-          <h1 className="max-w-3xl font-display text-4xl font-bold leading-[1.08] tracking-tight text-gradient md:text-6xl">
+          <h1 className="max-w-3xl font-display text-4xl font-light leading-[1.06] tracking-[-0.02em] text-[var(--rc-bright)] md:text-6xl">
             Bonus inference,
-            <br className="hidden sm:block" /> peak rates &amp; token discounts
+            <br className="hidden sm:block" />{" "}
+            <em className="italic text-[var(--rc-text-dim)]">peak rates &amp; token discounts</em>
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-[var(--rc-text-dim)]">
             Every known z.ai bonus window, multiplier and limited-time discount — computed live in your browser with
@@ -382,7 +381,7 @@ function SectionHeader({ eyebrow, title, blurb }: { eyebrow: string; title: stri
   return (
     <div className="mb-6 max-w-3xl">
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rc-accent)]">{eyebrow}</p>
-      <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight md:text-3xl">{title}</h2>
+      <h2 className="mt-1.5 font-display text-2xl font-light tracking-[-0.01em] text-[var(--rc-bright)] md:text-3xl">{title}</h2>
       <p className="mt-2 text-[15px] text-[var(--rc-text-dim)]">{blurb}</p>
     </div>
   );

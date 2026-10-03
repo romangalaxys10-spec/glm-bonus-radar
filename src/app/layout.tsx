@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { InstallPrompt } from "@/components/portal/install-prompt";
-import { MODE_STORAGE_KEY, PALETTE_STORAGE_KEY } from "@/lib/theme";
+import { PALETTE_STORAGE_KEY } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "GLM Bonus Radar — Peak Rates, Bonus Windows & Token Discounts",
@@ -41,10 +41,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#eef2ec" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1510" },
-  ],
+  themeColor: "#050505",
 };
 
 /**
@@ -55,13 +52,14 @@ export const viewport: Viewport = {
 const themeBoot = `
 (function(){try{
   var d=document.documentElement;
+  /* xShredo promo design: fixed dark — palette/mode storage kept harmless */
   var p=localStorage.getItem("${PALETTE_STORAGE_KEY}")||"brook";
-  var m=localStorage.getItem("${MODE_STORAGE_KEY}")||"system";
-  var dark=m==="dark"||(m==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);
   d.dataset.palette=p;
-  d.classList.toggle("dark",dark);
-  d.style.colorScheme=dark?"dark":"light";
-}catch(e){}})();
+  d.classList.add("dark");
+  d.style.colorScheme="dark";
+}catch(e){
+  document.documentElement.classList.add("dark");
+}})();
 `;
 
 export default function RootLayout({
@@ -77,7 +75,7 @@ export default function RootLayout({
         {/* App Router: these load once for the whole app; the lint rule below targets Pages Router only. */}
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,600&family=Space+Mono:wght@400;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
