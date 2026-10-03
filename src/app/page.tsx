@@ -14,6 +14,7 @@ import { NotifyEngine, NotificationsBell } from "@/components/portal/notificatio
 import { DataFreshnessBadge } from "@/components/portal/data-freshness";
 import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
 import { AiVpsBanner } from "@/components/portal/ai-vps-banner";
+import { AgentNavButton } from "@/components/portal/agent-nav-button";
 import { CnOpsSection } from "@/components/portal/cn-ops-section";
 import { ToolsSection } from "@/components/portal/tools-section";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
@@ -93,6 +94,8 @@ export default function Home() {
                 {n.label}
               </a>
             ))}
+            {/* Highlighted promo button — the one accent pill in the menu (Task 44) */}
+            <AgentNavButton />
             <a
               href="/api/metrics"
               className="text-[var(--rc-brand)] transition-colors hover:text-[var(--rc-accent)]"
