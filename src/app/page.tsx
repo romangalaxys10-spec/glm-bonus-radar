@@ -8,7 +8,7 @@ import {
 import { PricingSection } from "@/components/portal/pricing-section";
 import { PlansSection } from "@/components/portal/plans-section";
 import { InviteSection } from "@/components/portal/invite-section";
-import { ZAssist, AskZAssistLink } from "@/components/portal/z-assist";
+import { ZAssist, AskZAssistLink, ZAssistStarters } from "@/components/portal/z-assist";
 import { NotifyEngine, NotificationsBell } from "@/components/portal/notifications-center";
 import { DataFreshnessBadge } from "@/components/portal/data-freshness";
 import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
@@ -184,6 +184,7 @@ export default function Home() {
             </Link>
             <DataFreshnessBadge />
           </div>
+          <ZAssistStarters />
           <AnnouncementsStrip />
           <ScannerAdBanner />
           <AiVpsBanner />

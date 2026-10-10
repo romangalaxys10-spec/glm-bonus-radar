@@ -4,6 +4,8 @@ import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { createPortal } from "react-dom";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { useFreshAnnouncements } from "@/lib/use-fresh-announcements";
+import { parseAssistReply, type AssistBlock } from "@/lib/assist-blocks";
+import { AssistBlocks } from "@/components/portal/assist-blocks";
 
 /**
  * Z-Assist — floating live-chat assistant grounded in the official z.ai
@@ -17,6 +19,8 @@ interface ChatMsg {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Generative-UI blocks rendered under the text ("answers you can interact with"). */
+  blocks?: AssistBlock[];
   error?: boolean;
 }
 
@@ -73,17 +77,18 @@ function rememberToken(t: string) {
 const GREETING: Omit<ChatMsg, "id"> = {
   role: "assistant",
   content:
-    "Hi, I'm Z-Assist 👋 I answer questions about z.ai promos, bonus windows, coding plans and API usage — straight from the official docs (docs.z.ai). What would you like to know?",
+    "Hi, I'm Z-Assist 👋 I answer questions about z.ai promos, bonus windows, coding plans and API usage — straight from the official docs (docs.z.ai). Comparisons arrive as tables, quota math runs as live tools you can tweak. What would you like to know?",
 };
 
-const SUGGESTIONS = [
-  "Where can I run my AI agents 24/7?",
-  "When are off-peak hours and how much do I save?",
-  "How does the 10% OFF invite code work?",
-  "What's included in the Flash campaign?",
-  "How do credits work on the new plans?",
-  "Which coding tools are supported?",
-  "How do I make my first API call?",
+/** Starter suggestions, tagged the OpenIntelligentUI way: explain / compare / tool / steps. */
+const STARTERS: Array<{ tag: "explain" | "compare" | "tool" | "steps"; q: string }> = [
+  { tag: "compare", q: "Compare the coding plan tiers and weekly quotas" },
+  { tag: "tool", q: "I use ~300M tokens a week, 80% off-peak — will the Pro plan fit?" },
+  { tag: "explain", q: "When are off-peak hours and how much do I save?" },
+  { tag: "tool", q: "We pay per seat for AI tools — what's the always-on alternative?" },
+  { tag: "steps", q: "How do I make my first API call?" },
+  { tag: "explain", q: "How does the 10% OFF invite code work?" },
+  { tag: "explain", q: "What's included in the Flash campaign?" },
 ];
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -153,6 +158,21 @@ function buildTranslatePrompt(language: string, reply: string): string {
 const ACTION_BTN =
   "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] text-[var(--rc-tone3)] transition-colors hover:bg-[var(--rc-bg)] hover:text-[var(--rc-accent)] disabled:cursor-not-allowed disabled:opacity-40";
 
+/** Normalizes any stored/raw assistant content: strips block fences, keeps validated blocks. */
+function toChatMsg(m: { id?: string; role: "user" | "assistant"; content: string; error?: boolean }): ChatMsg {
+  if (m.role !== "assistant") {
+    return { id: m.id ?? uid(), role: m.role, content: m.content, error: m.error };
+  }
+  const parsed = parseAssistReply(m.content);
+  return {
+    id: m.id ?? uid(),
+    role: m.role,
+    content: parsed.text,
+    ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
+    error: m.error,
+  };
+}
+
 function loadStored(): ChatMsg[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -168,7 +188,9 @@ function loadStored(): ChatMsg[] {
           m.content.length > 0,
       )
       .slice(-30)
-      .map((m) => ({ id: m.id ?? uid(), role: m.role, content: m.content, error: m.error }));
+      .map((m) =>
+        toChatMsg({ id: m.id, role: m.role, content: m.content, error: m.error }),
+      );
   } catch {
     return [];
   }
@@ -428,6 +450,32 @@ export function AskZAssistLink({ className }: { className?: string }) {
   );
 }
 
+/** Hero starter chips (OpenIntelligentUI pattern): open the chat with a
+    prefilled question the user reviews and sends — never auto-submitted. */
+const HERO_STARTERS: Array<{ tag: string; q: string }> = [
+  { tag: "compare", q: "Compare the coding plan tiers and weekly quotas" },
+  { tag: "tool", q: "Estimate my weekly coding-plan quota" },
+  { tag: "tool", q: "Per-seat AI costs vs one always-on box" },
+];
+
+export function ZAssistStarters() {
+  return (
+    <div className="mt-4 flex flex-wrap gap-1.5" aria-label="Starter questions for Z-Assist">
+      {HERO_STARTERS.map((s) => (
+        <button
+          key={s.q}
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent(ZASSIST_OPEN_EVENT, { detail: s.q }))}
+          className="inline-flex items-baseline gap-1.5 rounded-full border border-[var(--rc-border)] bg-[var(--rc-surface)] px-3 py-1.5 text-[12px] text-[var(--rc-text-dim)] transition-colors hover:border-[var(--rc-accent)] hover:text-[var(--rc-text)]"
+        >
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--rc-accent)]">{s.tag}</span>
+          {s.q}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ZAssist() {
   const [open, setOpen] = useState(false);
   const [teaser, setTeaser] = useState(false);
@@ -578,7 +626,7 @@ export function ZAssist() {
           };
           if (Array.isArray(data.messages) && data.messages.length > 0) {
             seededRef.current = true;
-            setMessages(data.messages.map((m) => ({ id: uid(), role: m.role, content: m.content })));
+            setMessages(data.messages.map((m) => toChatMsg({ role: m.role, content: m.content })));
           }
         } catch {
           /* offline — local copy still shown */
@@ -589,9 +637,17 @@ export function ZAssist() {
     setTimeout(() => inputRef.current?.focus(), 240);
   }, [messages.length, fetchHistory]);
 
-  /* external open requests (hero link, CTAs) */
+  /* external open requests (hero link, CTAs, homepage starter chips).
+     A CustomEvent detail (string) prefills the composer — reviewed and sent
+     by the user, never auto-submitted (OpenIntelligentUI rule). */
   useEffect(() => {
-    const onOpen = () => openPanel();
+    const onOpen = (e: Event) => {
+      openPanel();
+      if (e instanceof CustomEvent && typeof e.detail === "string" && e.detail.trim()) {
+        setInput(e.detail.trim());
+        requestAnimationFrame(() => inputRef.current?.focus());
+      }
+    };
     window.addEventListener(ZASSIST_OPEN_EVENT, onOpen);
     return () => window.removeEventListener(ZASSIST_OPEN_EVENT, onOpen);
   }, [openPanel]);
@@ -638,7 +694,16 @@ export function ZAssist() {
           rememberToken(data.token);
         }
         const id = uid();
-        setMessages((prev) => [...prev, { id, role: "assistant", content: data.reply as string }]);
+        const parsed = parseAssistReply(data.reply);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id,
+            role: "assistant",
+            content: parsed.text,
+            ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
+          },
+        ]);
         setReveal({ id, len: 0 });
       } catch (err) {
         setMessages((prev) => [
@@ -715,7 +780,9 @@ export function ZAssist() {
       saveToken(clean);
       rememberToken(clean);
       seededRef.current = true;
-      setMessages(data.messages.map((m) => ({ id: uid(), role: m.role, content: m.content })));
+      setMessages(
+        data.messages.map((m) => toChatMsg({ role: m.role, content: m.content })),
+      );
       setHistoryOpen(false);
       setResumeValue("");
       void fetchHistory();
@@ -1060,6 +1127,9 @@ export function ZAssist() {
               <div className="space-y-1.5 break-words text-[var(--rc-text)]">
                 {renderMarkdown(m.content)}
               </div>
+              {!m.error && reveal?.id !== m.id && m.blocks && m.blocks.length > 0 && (
+                <AssistBlocks blocks={m.blocks} />
+              )}
               {!m.error && m.content.includes(INVITE_CODE) && (
                 <a
                   href={INVITE_URL}
@@ -1123,14 +1193,19 @@ export function ZAssist() {
             <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--rc-tone3)]">
               try asking
             </p>
-            {SUGGESTIONS.map((s) => (
+            {STARTERS.map((s) => (
               <button
-                key={s}
+                key={s.q}
                 type="button"
-                onClick={() => send(s)}
-                className="rounded-xl border border-[var(--rc-border)] bg-[var(--rc-surface)] px-3 py-2 text-left text-[12.5px] leading-snug text-[var(--rc-text-dim)] transition-colors hover:border-[var(--rc-accent)] hover:text-[var(--rc-text)]"
+                onClick={() => send(s.q)}
+                className="rounded-xl border border-[var(--rc-border)] bg-[var(--rc-surface)] px-3 py-2 text-left transition-colors hover:border-[var(--rc-accent)]"
               >
-                {s}
+                <span className="mb-0.5 block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--rc-accent)]">
+                  {s.tag}
+                </span>
+                <span className="block text-[12.5px] leading-snug text-[var(--rc-text-dim)] transition-colors hover:text-[var(--rc-text)]">
+                  {s.q}
+                </span>
               </button>
             ))}
           </div>
