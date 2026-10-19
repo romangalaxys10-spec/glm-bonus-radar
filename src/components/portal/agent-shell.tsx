@@ -100,7 +100,18 @@ function XIcon({ className }: { className?: string }) {
 
 /* -------------------------------- the shell ------------------------------- */
 
-export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () => void }) {
+export function ChatShell({
+  user,
+  onSignOut,
+  onInvalidToken,
+}: {
+  user: AgentUser;
+  onSignOut: () => void;
+  /** Called when the server answers "Unknown token" — a redeploy reset the
+   *  DB mid-session. The parent re-issues a token (same name) and remounts
+   *  this shell with the new identity via key. */
+  onInvalidToken: (stale: AgentUser) => void;
+}) {
   const [convs, setConvs] = useState<ConvSummary[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -124,13 +135,19 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
     try {
       const res = await fetch(`/api/agent/conversations?token=${encodeURIComponent(user.token)}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(String(data.error ?? "Could not load chats."));
+      if (!res.ok) {
+        if (res.status === 404 && String(data.error ?? "").startsWith("Unknown token")) {
+          onInvalidToken(user);
+          return;
+        }
+        throw new Error(String(data.error ?? "Could not load chats."));
+      }
       setConvs((data.conversations as ConvSummary[]) ?? []);
     } catch {
       setConvs([]);
       setListError("Chats list unavailable — you can still chat.");
     }
-  }, [user.token]);
+  }, [user, onInvalidToken]);
 
   const openConversation = useCallback(
     async (id: string) => {
@@ -142,7 +159,13 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
           `/api/agent/conversations?token=${encodeURIComponent(user.token)}&id=${encodeURIComponent(id)}`,
         );
         const data = await res.json();
-        if (!res.ok) throw new Error(String(data.error ?? "Could not open that chat."));
+        if (!res.ok) {
+          if (res.status === 404 && String(data.error ?? "").startsWith("Unknown token")) {
+            onInvalidToken(user);
+            return;
+          }
+          throw new Error(String(data.error ?? "Could not open that chat."));
+        }
         const msgs = (data.messages as Array<{ role: "user" | "assistant"; content: string }>).map(toChatMsg);
         setMessages(msgs);
         setActiveId(id);
@@ -161,7 +184,7 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
         setThreadBusy(false);
       }
     },
-    [user.token],
+    [user, onInvalidToken],
   );
 
   /* Mount: restore model pref + last open thread, load the drawer. */
@@ -262,7 +285,14 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
         body: JSON.stringify({ token: user.token, id: activeId, model, messages: wire }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(String(data.error ?? "Z-Assist could not reply."));
+      if (!res.ok) {
+        if (res.status === 404 && String(data.error ?? "").includes("Unknown token")) {
+          // Dead identity (redeploy reset the DB) — heal instead of dead-ending.
+          onInvalidToken(user);
+          throw new Error("Your access token went stale — issuing a fresh one for you…");
+        }
+        throw new Error(String(data.error ?? "Z-Assist could not reply."));
+      }
 
       const parsed = parseAssistReply(String(data.reply ?? ""));
       const replyMsg: ChatMsg = {
@@ -313,7 +343,7 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
       setSending(false);
       abortRef.current = null;
     }
-  }, [input, sending, threadBusy, messages, user.token, activeId, model]);
+  }, [input, sending, threadBusy, messages, user, activeId, model, onInvalidToken]);
 
   const switchModel = (m: Model) => {
     setModel(m);

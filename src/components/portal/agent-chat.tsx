@@ -19,7 +19,7 @@ import { CONV_KEY, NAME_KEY, TOKEN_KEY, type AgentUser } from "@/components/port
 export { TOKEN_KEY, NAME_KEY, CONV_KEY } from "@/components/portal/agent-storage";
 export type { AgentUser } from "@/components/portal/agent-storage";
 
-type Phase = "boot" | "gate" | "app";
+type Phase = "boot" | "gate" | "reissue" | "app";
 
 /* --------------------------------- icons ---------------------------------- */
 
@@ -40,11 +40,103 @@ export function CheckIcon({ className }: { className?: string }) {
   );
 }
 
+/* ------------------------------ token reveal ------------------------------ */
+
+/**
+ * The one-time token reveal screen — shown right after registration and after
+ * a silent re-issue (portal redeploy wiped the DB). `note` explains why a
+ * fresh token appeared; without it the screen reads as the normal welcome.
+ */
+function TokenReveal({
+  user,
+  note,
+  onContinue,
+}: {
+  user: AgentUser;
+  note?: string;
+  onContinue: (u: AgentUser) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const copyToken = async () => {
+    try {
+      await navigator.clipboard.writeText(user.token);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  return (
+    <div className="zs flex min-h-[100dvh] flex-col items-center justify-center bg-canvas px-4 py-10 text-body antialiased selection:bg-azure/30">
+      <div className="w-full max-w-md rounded-2xl border border-hair/10 bg-surface p-6 sm:p-8">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
+          personal access token
+        </p>
+        <h1 className="mt-2 text-[22px] font-light tracking-tight text-bright">
+          Welcome, {user.name} — this is your key.
+        </h1>
+        {note && (
+          <p className="mt-2 rounded-lg border border-azure/25 bg-azure/[0.07] px-3 py-2 text-[12.5px] leading-relaxed text-soft">
+            {note}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={copyToken}
+          className="mt-5 flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-azure/50 bg-azure/[0.08] px-4 py-3.5 transition-colors hover:bg-azure/[0.14]"
+          aria-label="Copy your personal access token"
+        >
+          <span className="font-mono text-[20px] font-semibold tracking-[0.12em] text-azure2">
+            {user.token}
+          </span>
+          <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
+            {copied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />}
+            {copied ? "copied" : "copy"}
+          </span>
+        </button>
+        <ul className="mt-5 space-y-2 text-[12.5px] leading-relaxed text-dim">
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-azure" />
+            Save it now — this token IS your account. It restores your name and every chat on any
+            device.
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-azure" />
+            Chats are stored in the portal database under this token — continue earlier threads
+            anytime, start new ones with one click.
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-azure" />
+            For your privacy there is no password or email — we cannot recover a lost token, so
+            keep a copy somewhere safe.
+          </li>
+        </ul>
+        <button
+          type="button"
+          onClick={() => onContinue(user)}
+          className="mt-6 h-10 w-full rounded-full bg-bright text-[13.5px] font-medium text-canvas transition-transform hover:bg-hair active:scale-[0.98]"
+        >
+          Save &amp; enter chat
+        </button>
+      </div>
+      <Link
+        href="/"
+        className="mt-6 font-mono text-[11px] text-faint transition-colors hover:text-soft"
+      >
+        ← back to the portal
+      </Link>
+    </div>
+  );
+}
+
 /* ------------------------------ root component ---------------------------- */
 
 export function AgentChatApp() {
   const [phase, setPhase] = useState<Phase>("boot");
   const [user, setUser] = useState<AgentUser | null>(null);
+  const [reissue, setReissue] = useState<AgentUser | null>(null);
 
   const saveSession = useCallback((u: AgentUser) => {
     try {
@@ -69,6 +161,49 @@ export function AgentChatApp() {
     setPhase("gate");
   }, []);
 
+  /**
+   * Silent self-heal: the server no longer knows this device's token (a
+   * redeploy resets the portal DB). Re-issue a token under the SAME stored
+   * name so a returning visitor keeps their identity; chats from before the
+   * reset are gone, and the reveal screen says so honestly.
+   */
+  const reissueFor = useCallback(async (name: string | null): Promise<AgentUser | null> => {
+    if (!name) return null;
+    try {
+      const res = await fetch("/api/agent/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { name: string; token: string };
+      return { name: data.name, token: data.token };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  /** Mid-session healing: the chat/list APIs hit "Unknown token" — swap in a
+   * fresh token (ChatShell remounts via key) or fall back to the gate. */
+  const recoverSession = useCallback(
+    async (stale: AgentUser) => {
+      const fresh = await reissueFor(stale.name);
+      if (fresh) {
+        try {
+          localStorage.setItem(TOKEN_KEY, fresh.token);
+          localStorage.setItem(NAME_KEY, fresh.name);
+          localStorage.removeItem(CONV_KEY); // old threads died with the reset
+        } catch {
+          /* private mode — session stays in memory */
+        }
+        setUser(fresh);
+      } else {
+        signOut();
+      }
+    },
+    [reissueFor, signOut],
+  );
+
   /* Boot: validate the locally stored token against the server. */
   useEffect(() => {
     let alive = true;
@@ -91,6 +226,21 @@ export function AgentChatApp() {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ token: stored }),
         });
+        if (res.status === 404) {
+          // Definitive: the server doesn't know this token (redeploy reset).
+          // Re-issue under the stored name; only a failure to do so lands in
+          // the gate. A network error below still falls back gracefully.
+          const fresh = await reissueFor(name);
+          if (alive) {
+            if (fresh) {
+              setReissue(fresh);
+              setPhase("reissue");
+            } else {
+              setPhase("gate");
+            }
+          }
+          return;
+        }
         if (!res.ok) throw new Error("session invalid");
         const data = (await res.json()) as { name: string; token: string };
         if (alive) {
@@ -113,7 +263,7 @@ export function AgentChatApp() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reissueFor]);
 
   if (phase === "boot") {
     return (
@@ -132,7 +282,17 @@ export function AgentChatApp() {
     return <Gate onReady={saveSession} />;
   }
 
-  return <ChatShell user={user!} onSignOut={signOut} />;
+  if (phase === "reissue" && reissue) {
+    return (
+      <TokenReveal
+        user={reissue}
+        note="The portal was updated and its chat database was reset — this fresh token replaces the one saved on this device. Chats from before the update could not be carried over."
+        onContinue={saveSession}
+      />
+    );
+  }
+
+  return <ChatShell key={user!.token} user={user!} onSignOut={signOut} onInvalidToken={(u) => void recoverSession(u)} />;
 }
 
 /* ------------------------------ onboarding gate --------------------------- */
@@ -144,7 +304,6 @@ function Gate({ onReady }: { onReady: (u: AgentUser) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [issued, setIssued] = useState<AgentUser | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const register = async () => {
     if (busy) return;
@@ -186,75 +345,9 @@ function Gate({ onReady }: { onReady: (u: AgentUser) => void }) {
     }
   };
 
-  const copyToken = async () => {
-    if (!issued) return;
-    try {
-      await navigator.clipboard.writeText(issued.token);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
-
   /* ---- issued: the one-time token reveal screen ---- */
   if (issued) {
-    return (
-      <div className="zs flex min-h-[100dvh] flex-col items-center justify-center bg-canvas px-4 py-10 text-body antialiased selection:bg-azure/30">
-        <div className="w-full max-w-md rounded-2xl border border-hair/10 bg-surface p-6 sm:p-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
-            personal access token
-          </p>
-          <h1 className="mt-2 text-[22px] font-light tracking-tight text-bright">
-            Welcome, {issued.name} — this is your key.
-          </h1>
-          <button
-            type="button"
-            onClick={copyToken}
-            className="mt-5 flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-azure/50 bg-azure/[0.08] px-4 py-3.5 transition-colors hover:bg-azure/[0.14]"
-            aria-label="Copy your personal access token"
-          >
-            <span className="font-mono text-[20px] font-semibold tracking-[0.12em] text-azure2">
-              {issued.token}
-            </span>
-            <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-              {copied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />}
-              {copied ? "copied" : "copy"}
-            </span>
-          </button>
-          <ul className="mt-5 space-y-2 text-[12.5px] leading-relaxed text-dim">
-            <li className="flex gap-2">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-azure" />
-              Save it now — this token IS your account. It restores your name and every chat on any
-              device.
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-azure" />
-              Chats are stored in the portal database under this token — continue earlier threads
-              anytime, start new ones with one click.
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-azure" />
-              For your privacy there is no password or email — we cannot recover a lost token, so
-              keep a copy somewhere safe.
-            </li>
-          </ul>
-          <button
-            type="button"
-            onClick={() => onReady(issued)}
-            className="mt-6 h-10 w-full rounded-full bg-bright text-[13.5px] font-medium text-canvas transition-transform hover:bg-hair active:scale-[0.98]"
-          >
-            Save &amp; enter chat
-          </button>
-        </div>
-        <Link
-          href="/"
-          className="mt-6 font-mono text-[11px] text-faint transition-colors hover:text-soft"
-        >
-          ← back to the portal
-        </Link>
-      </div>
-    );
+    return <TokenReveal user={issued} onContinue={onReady} />;
   }
 
   /* ---- default: name entry / token restore ---- */
