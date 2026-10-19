@@ -461,7 +461,7 @@ function SceneEndCard() {
         >
           from $5.75/mo · powered by xShredo
         </p>
-        <p style={{ fontFamily: MONO, fontSize: 15, color: C.dim, marginTop: 22 }}>zhelp.space-z.ai/agent</p>
+        <p style={{ fontFamily: MONO, fontSize: 15, color: C.dim, marginTop: 22 }}>zhelp.space-z.ai/agent-vps</p>
       </div>
     </AbsoluteFill>
   );
@@ -803,7 +803,7 @@ function MobileSceneEndCard() {
         >
           from $5.75/mo · xShredo
         </p>
-        <p style={{ fontFamily: MONO, fontSize: 12, color: C.dim, marginTop: 14 }}>zhelp.space-z.ai/agent</p>
+        <p style={{ fontFamily: MONO, fontSize: 12, color: C.dim, marginTop: 14 }}>zhelp.space-z.ai/agent-vps</p>
       </div>
     </AbsoluteFill>
   );

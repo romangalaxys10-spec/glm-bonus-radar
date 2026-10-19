@@ -30,6 +30,7 @@ const NAV = [
   { href: "#tools", label: "tools" },
   { href: "/scanner", label: "scanner" },
   { href: "/search", label: "geo search" },
+  { href: "/agent", label: "z-assist" },
   { href: "/fun", label: "zfun" },
 ];
 

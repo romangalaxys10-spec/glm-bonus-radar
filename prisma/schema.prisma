@@ -30,13 +30,28 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+/// A Z-Assist chat user, registered at /agent with just a first name.
+/// The personal access token (ZA-XXXXXX) restores the same account — and
+/// every conversation owned by it — on any device.
+model AssistUser {
+  id         String   @id @default(cuid())
+  name       String
+  token      String   @unique
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+}
+
 model AssistConversation {
   id        String   @id @default(cuid())
   token     String   @unique
+  /// Owning chat user's personal access token (null = legacy/anonymous threads).
+  userToken String?
   title     String?
   messages  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userToken, updatedAt])
 }
 
 model SiteData {
