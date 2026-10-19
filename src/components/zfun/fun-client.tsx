@@ -51,8 +51,8 @@ const GAME_VIEWS: Record<string, ComponentType> = {
 
 function LoadStub() {
   return (
-    <div className="flex h-56 items-center justify-center rounded-[14px] border border-white/10 bg-[#0a0a0b]">
-      <span className="zs-pixel animate-pulse text-[10px] text-zinc-500">LOADING CARTRIDGE…</span>
+    <div className="flex h-56 items-center justify-center rounded-[14px] border border-hair/10 bg-surface">
+      <span className="zs-pixel animate-pulse text-[10px] text-faint">LOADING CARTRIDGE…</span>
     </div>
   );
 }
@@ -225,20 +225,20 @@ export function FunClient() {
   const activeMeta = active ? ZFUN_BY_SLUG[active] : null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--rc-bg)] text-zinc-100 antialiased selection:bg-[#3b82f6]/30">
+    <div className="flex min-h-screen flex-col bg-[var(--rc-bg)] text-body antialiased selection:bg-azure/30">
       {/* Header — same chrome as the rest of the promo portal */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#050505]/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-hair/10 bg-canvas/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3 md:px-8">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[var(--rc-bright)] text-sm font-bold text-zinc-950">
+            <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[var(--rc-bright)] text-sm font-bold text-canvas">
               z
             </span>
-            <span className="text-[15px] font-semibold tracking-tight text-zinc-50">zFun</span>
-            <span className="hidden font-mono text-[11px] text-zinc-500 sm:inline">by GLM Bonus Radar</span>
+            <span className="text-[15px] font-semibold tracking-tight text-bright">zFun</span>
+            <span className="hidden font-mono text-[11px] text-faint sm:inline">by GLM Bonus Radar</span>
           </div>
           <Link
             href="/"
-            className="font-mono text-[12px] text-zinc-400 transition-colors hover:text-zinc-200"
+            className="font-mono text-[12px] text-dim transition-colors hover:text-body"
           >
             ← radar
           </Link>
@@ -251,22 +251,22 @@ export function FunClient() {
           <section aria-label={`${activeMeta.title} game`} className="mx-auto max-w-2xl">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <BackToLobby onClose={close} />
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
                 {activeMeta.tag}
               </span>
             </div>
-            <h1 className="mt-4 text-2xl font-light tracking-[-0.02em] text-zinc-50 md:text-3xl">
+            <h1 className="mt-4 text-2xl font-light tracking-[-0.02em] text-bright md:text-3xl">
               {activeMeta.title},{" "}
-              <em className="italic text-zinc-400">insert nothing, press play.</em>
+              <em className="italic text-dim">insert nothing, press play.</em>
             </h1>
-            <p className="mb-4 mt-2 text-[15px] leading-relaxed text-zinc-400">{activeMeta.blurb}</p>
+            <p className="mb-4 mt-2 text-[15px] leading-relaxed text-dim">{activeMeta.blurb}</p>
             <ActiveGame />
           </section>
         ) : (
           /* -------------------------- lobby view -------------------------- */
           <>
             <section aria-label="zFun arcade intro">
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-faint">
                 zfun arcade · 30 games · 0 installs
               </p>
               <div className="relative">
@@ -279,13 +279,13 @@ export function FunClient() {
                       "radial-gradient(ellipse, rgba(59,130,246,0.10), transparent 65%)",
                   }}
                 />
-                <h1 className="mt-3 text-4xl font-light leading-[1.06] tracking-[-0.02em] text-zinc-50 md:text-6xl">
+                <h1 className="mt-3 text-4xl font-light leading-[1.06] tracking-[-0.02em] text-bright md:text-6xl">
                   Thirty 8-bit games,
                   <br />
-                  <em className="italic text-zinc-400">played right here.</em>
+                  <em className="italic text-dim">played right here.</em>
                 </h1>
               </div>
-              <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-zinc-400 md:text-lg">
+              <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-dim md:text-lg">
                 A built-in arcade for the radar: thirty small classics rendered on pixel canvases.
                 Keyboard on desktop, touch pads on the phone — every game runs entirely in your
                 browser, and your best scores never leave your device.
@@ -299,20 +299,20 @@ export function FunClient() {
                   type="button"
                   onClick={() => open(g.slug)}
                   aria-label={`Play ${g.title}`}
-                  className="group flex flex-col rounded-[14px] border border-white/10 bg-[#0a0a0b] p-4 text-left transition-colors hover:border-white/30"
+                  className="group flex flex-col rounded-[14px] border border-hair/10 bg-surface p-4 text-left transition-colors hover:border-hair/30"
                 >
                   <PixelGlyph
                     slug={g.slug}
                     className="h-8 w-8 transition-transform group-hover:scale-110 motion-reduce:group-hover:scale-100"
                   />
-                  <span className="mt-3 text-[15px] font-semibold tracking-tight text-zinc-100">
+                  <span className="mt-3 text-[15px] font-semibold tracking-tight text-body">
                     {g.title}
                   </span>
-                  <span className="mt-1 text-[13px] leading-relaxed text-zinc-400 line-clamp-2">
+                  <span className="mt-1 text-[13px] leading-relaxed text-dim line-clamp-2">
                     {g.blurb}
                   </span>
                   <span className="mt-3 flex flex-wrap items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider">
-                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-zinc-400">
+                    <span className="rounded-full border border-hair/10 bg-hair/[0.03] px-2 py-0.5 text-dim">
                       {g.tag}
                     </span>
                     {(bests[g.slug] ?? 0) > 0 && (
@@ -321,7 +321,7 @@ export function FunClient() {
                       </span>
                     )}
                   </span>
-                  <span className="mt-3 font-mono text-[11px] text-zinc-500 transition-colors group-hover:text-[var(--rc-brand)]">
+                  <span className="mt-3 font-mono text-[11px] text-faint transition-colors group-hover:text-[var(--rc-brand)]">
                     play <span aria-hidden>→</span>
                   </span>
                 </button>
@@ -329,32 +329,32 @@ export function FunClient() {
             </div>
 
             {/* How it plays */}
-            <div className="mt-14 border-t border-white/10 pt-10">
-              <h2 className="text-2xl font-light tracking-[-0.02em] text-zinc-50 md:text-3xl">
+            <div className="mt-14 border-t border-hair/10 pt-10">
+              <h2 className="text-2xl font-light tracking-[-0.02em] text-bright md:text-3xl">
                 How it plays.
                 <br />
-                <em className="italic text-zinc-400">Three honest rules.</em>
+                <em className="italic text-dim">Three honest rules.</em>
               </h2>
               <div className="mt-8 grid gap-8 md:grid-cols-3">
                 <div>
-                  <h3 className="text-[15px] font-semibold text-zinc-100">Desktop: keyboard</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  <h3 className="text-[15px] font-semibold text-body">Desktop: keyboard</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-dim">
                     Arrows or WASD move, space fires and jumps, ↑ rotates. Each cabinet shows its
                     exact control line under the screen — no hidden combos, nothing to memorize
                     before you start.
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-zinc-100">Phone: touch pads</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  <h3 className="text-[15px] font-semibold text-body">Phone: touch pads</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-dim">
                     Every game that needs direction buttons gets on-screen arcade pads sized for
                     thumbs, plus gestures where they feel natural — swipe the snake, drag the
                     breakout paddle, swipe the merge board.
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-zinc-100">Scores: yours only</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  <h3 className="text-[15px] font-semibold text-body">Scores: yours only</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-dim">
                     Best scores live in your browser&apos;s localStorage and sync with nothing.
                     There are no accounts, no leaderboards and no telemetry — the arcade is a
                     local machine, it just happens to live on a web page.
@@ -366,8 +366,8 @@ export function FunClient() {
         )}
       </main>
 
-      <footer className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-6 font-mono text-[12px] text-zinc-500 md:px-8">
+      <footer className="border-t border-hair/10">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-6 font-mono text-[12px] text-faint md:px-8">
           <span>zFun · part of GLM Bonus Radar</span>
           <span>
             thirty local games · no data leaves your device ·{" "}

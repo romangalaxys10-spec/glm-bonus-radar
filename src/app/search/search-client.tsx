@@ -79,8 +79,8 @@ function ConsoleSearch({ value, onChange, onSubmit, busy }: {
   return (
     <div className="relative mx-auto w-full max-w-[560px]">
       {/* the device-mockup moment: glowing console card */}
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-[#111114] to-[#0a0a0b] px-5 pb-5 pt-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-18px_30px_rgba(0,0,0,0.55),0_30px_80px_-20px_rgba(59,130,246,0.28),0_8px_30px_rgba(0,0,0,0.6)] transition-colors focus-within:border-[#3b82f6]/60">
-        <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#3b82f6] shadow-[0_0_12px_rgba(59,130,246,0.9)]" />
+      <div className="zs-console rounded-2xl border border-hair/10 bg-gradient-to-b from-surface2 to-surface px-5 pb-5 pt-4 transition-colors focus-within:border-azure/60">
+        <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-azure shadow-[0_0_12px_rgba(59,130,246,0.9)]" />
         <form
           role="search"
           onSubmit={(e) => {
@@ -89,7 +89,7 @@ function ConsoleSearch({ value, onChange, onSubmit, busy }: {
           }}
           className="flex items-center gap-2.5"
         >
-          <SearchGlyph className="h-4 w-4 shrink-0 text-zinc-600" />
+          <SearchGlyph className="h-4 w-4 shrink-0 text-deep" />
           <input
             type="text"
             value={value}
@@ -98,12 +98,12 @@ function ConsoleSearch({ value, onChange, onSubmit, busy }: {
             aria-label="Search query"
             maxLength={240}
             enterKeyHint="search"
-            className="zs-mono h-11 min-w-0 flex-1 bg-transparent text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600"
+            className="zs-mono h-11 min-w-0 flex-1 bg-transparent text-[14px] text-body outline-none placeholder:text-deep"
           />
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex h-10 shrink-0 items-center rounded-full bg-zinc-50 px-5 text-[13px] font-semibold tracking-tight text-zinc-950 transition hover:bg-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 shrink-0 items-center rounded-full bg-bright px-5 text-[13px] font-semibold tracking-tight text-canvas transition hover:bg-hair active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "scoring…" : "search →"}
           </button>
@@ -126,9 +126,9 @@ function CompactSearch({ value, onChange, onSubmit, busy }: {
         e.preventDefault();
         onSubmit();
       }}
-      className="flex items-center gap-2 rounded-full border border-white/10 bg-[#0a0a0b] py-1.5 pl-4 pr-1.5 transition-colors focus-within:border-[#3b82f6]/60"
+      className="flex items-center gap-2 rounded-full border border-hair/10 bg-surface py-1.5 pl-4 pr-1.5 transition-colors focus-within:border-azure/60"
     >
-      <SearchGlyph className="h-3.5 w-3.5 shrink-0 text-zinc-600" />
+      <SearchGlyph className="h-3.5 w-3.5 shrink-0 text-deep" />
       <input
         type="text"
         value={value}
@@ -137,12 +137,12 @@ function CompactSearch({ value, onChange, onSubmit, busy }: {
         aria-label="Search query"
         maxLength={240}
         enterKeyHint="search"
-        className="zs-mono h-9 min-w-0 flex-1 bg-transparent text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600"
+        className="zs-mono h-9 min-w-0 flex-1 bg-transparent text-[13px] text-body outline-none placeholder:text-deep"
       />
       <button
         type="submit"
         disabled={busy}
-        className="inline-flex h-8 shrink-0 items-center rounded-full bg-zinc-50 px-4 text-[12px] font-semibold tracking-tight text-zinc-950 transition hover:bg-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex h-8 shrink-0 items-center rounded-full bg-bright px-4 text-[12px] font-semibold tracking-tight text-canvas transition hover:bg-hair active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? "scoring…" : "search →"}
       </button>
@@ -166,7 +166,7 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
         <span className="zs-mono text-base font-bold leading-none md:text-lg" style={{ color }}>
           {score}
         </span>
-        <span className="zs-mono mt-0.5 text-[9px] uppercase tracking-[0.12em] text-zinc-500">{grade}·geo</span>
+        <span className="zs-mono mt-0.5 text-[9px] uppercase tracking-[0.12em] text-faint">{grade}·geo</span>
       </div>
     </div>
   );
@@ -184,11 +184,11 @@ function DimBars({ dims }: { dims: GeoDims }) {
     <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
       {DIMS.map(({ key, label }) => (
         <div key={key}>
-          <div className="zs-mono flex items-baseline justify-between gap-2 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+          <div className="zs-mono flex items-baseline justify-between gap-2 text-[10px] uppercase tracking-[0.08em] text-faint">
             <span>{label}</span>
-            <span className="text-zinc-300">{dims[key]}</span>
+            <span className="text-soft">{dims[key]}</span>
           </div>
-          <div className="mt-1 h-[3px] overflow-hidden rounded-full bg-white/10">
+          <div className="mt-1 h-[3px] overflow-hidden rounded-full bg-hair/10">
             <div className="h-[3px] rounded-full" style={{ width: `${dims[key]}%`, background: bandColor(dims[key]) }} />
           </div>
         </div>
@@ -202,7 +202,7 @@ function DomainAvatar({ domain }: { domain: string }) {
   return (
     <span
       aria-hidden
-      className="zs-mono flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border border-white/15 bg-white/5 text-[10px] font-semibold text-zinc-200"
+      className="zs-mono flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border border-hair/15 bg-hair/5 text-[10px] font-semibold text-body"
     >
       {letter}
     </span>
@@ -212,8 +212,8 @@ function DomainAvatar({ domain }: { domain: string }) {
 function RankDelta({ geoRank, webRank }: { geoRank: number; webRank: number }) {
   const d = webRank - geoRank; // positive = moved up under GEO
   if (d > 0) return <div className="zs-mono text-[11px] font-semibold" style={{ color: ACCENT_HOVER }}>↑{d}</div>;
-  if (d < 0) return <div className="zs-mono text-[11px] text-zinc-600">↓{Math.abs(d)}</div>;
-  return <div className="zs-mono text-[11px] text-zinc-600">·</div>;
+  if (d < 0) return <div className="zs-mono text-[11px] text-deep">↓{Math.abs(d)}</div>;
+  return <div className="zs-mono text-[11px] text-deep">·</div>;
 }
 
 /* --------------------------------- results --------------------------------- */
@@ -222,23 +222,23 @@ function ResultRow({ r, order }: { r: GeoSearchResult; order: "geo" | "web" }) {
   return (
     <li
       id={`r${r.webRank}`}
-      className="scroll-mt-24 rounded-[14px] border border-white/10 bg-[#0a0a0b] p-4 transition-colors hover:border-white/25 md:p-5"
+      className="scroll-mt-24 rounded-[14px] border border-hair/10 bg-surface p-4 transition-colors hover:border-hair/25 md:p-5"
     >
       <div className="flex items-start gap-3 md:gap-4">
         <div className="w-8 shrink-0 pt-1 text-right md:w-11">
-          <div className="text-[26px] font-light leading-none tracking-tight text-zinc-50 md:text-[30px]">
+          <div className="text-[26px] font-light leading-none tracking-tight text-bright md:text-[30px]">
             {order === "geo" ? r.geoRank : r.webRank}
           </div>
-          <div className="mt-1.5">{order === "geo" ? <RankDelta geoRank={r.geoRank} webRank={r.webRank} /> : <div className="zs-mono text-[11px] text-zinc-600">web</div>}</div>
+          <div className="mt-1.5">{order === "geo" ? <RankDelta geoRank={r.geoRank} webRank={r.webRank} /> : <div className="zs-mono text-[11px] text-deep">web</div>}</div>
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <DomainAvatar domain={r.domain} />
-            <span className="zs-mono text-xs text-zinc-500">{r.domain}</span>
-            {r.date && <span className="zs-mono text-[11px] text-zinc-600">· {r.date}</span>}
+            <span className="zs-mono text-xs text-faint">{r.domain}</span>
+            {r.date && <span className="zs-mono text-[11px] text-deep">· {r.date}</span>}
             {r.cited && (
-              <span className="zs-mono inline-flex shrink-0 items-center rounded-full border border-[#3b82f6]/50 bg-[#3b82f6]/10 px-2 py-[2px] text-[9px] font-semibold uppercase tracking-[0.08em] text-[#60a5fa]">
+              <span className="zs-mono inline-flex shrink-0 items-center rounded-full border border-azure/50 bg-azure/10 px-2 py-[2px] text-[9px] font-semibold uppercase tracking-[0.08em] text-azure2">
                 cited in ai answer
               </span>
             )}
@@ -247,13 +247,13 @@ function ResultRow({ r, order }: { r: GeoSearchResult; order: "geo" | "web" }) {
             href={r.url}
             target="_blank"
             rel="noopener"
-            className="mt-1.5 block text-[17px] font-medium leading-snug tracking-tight text-zinc-100 transition-colors hover:text-[#60a5fa] md:text-lg"
+            className="mt-1.5 block text-[17px] font-medium leading-snug tracking-tight text-body transition-colors hover:text-azure2 md:text-lg"
           >
             {r.title}
           </a>
-          {r.snippet && <p className="mt-1.5 line-clamp-3 text-[14px] leading-relaxed text-zinc-400">{r.snippet}</p>}
+          {r.snippet && <p className="mt-1.5 line-clamp-3 text-[14px] leading-relaxed text-dim">{r.snippet}</p>}
           <DimBars dims={r.dims} />
-          <p className="zs-mono mt-2.5 text-[11px] leading-relaxed text-zinc-600">↳ {r.note}</p>
+          <p className="zs-mono mt-2.5 text-[11px] leading-relaxed text-deep">↳ {r.note}</p>
         </div>
 
         <ScoreRing score={r.score} grade={r.grade} />
@@ -265,7 +265,7 @@ function ResultRow({ r, order }: { r: GeoSearchResult; order: "geo" | "web" }) {
 function AnswerText({ text }: { text: string }) {
   const parts = text.split(/(\[\d+\])/g);
   return (
-    <p className="text-[15px] leading-relaxed text-zinc-200">
+    <p className="text-[15px] leading-relaxed text-body">
       {parts.map((part, i) => {
         const m = part.match(/^\[(\d+)\]$/);
         if (!m) return <span key={i}>{part}</span>;
@@ -273,7 +273,7 @@ function AnswerText({ text }: { text: string }) {
           <a
             key={i}
             href={`#r${m[1]}`}
-            className="zs-mono mx-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] border border-white/15 bg-white/5 px-1 align-middle text-[10px] font-semibold text-zinc-300 transition-colors hover:border-[#3b82f6] hover:text-[#60a5fa]"
+            className="zs-mono mx-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] border border-hair/15 bg-hair/5 px-1 align-middle text-[10px] font-semibold text-soft transition-colors hover:border-azure hover:text-azure2"
           >
             {m[1]}
           </a>
@@ -288,9 +288,9 @@ function AnswerCard({ data }: { data: GeoSearchPayload }) {
   return (
     <section
       aria-label="AI answer preview"
-      className="rounded-[14px] border border-[#3b82f6]/30 bg-[rgba(59,130,246,0.05)] p-5"
+      className="rounded-[14px] border border-azure/30 bg-[rgba(59,130,246,0.05)] p-5"
     >
-      <p className="zs-mono flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#60a5fa]">
+      <p className="zs-mono flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-azure2">
         <SparkGlyph className="h-3.5 w-3.5" />
         ai answer preview
       </p>
@@ -300,15 +300,15 @@ function AnswerCard({ data }: { data: GeoSearchPayload }) {
             <AnswerText text={data.answer} />
           </div>
           {cited.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
-              <span className="zs-mono text-[11px] text-zinc-500">cited sources:</span>
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-hair/10 pt-3">
+              <span className="zs-mono text-[11px] text-faint">cited sources:</span>
               {cited.map((r) => (
                 <a
                   key={r.webRank}
                   href={`#r${r.webRank}`}
-                  className="zs-mono inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-300 transition-colors hover:border-[#3b82f6]"
+                  className="zs-mono inline-flex items-center gap-1.5 rounded-full border border-hair/15 bg-hair/[0.03] px-2.5 py-1 text-[11px] text-soft transition-colors hover:border-azure"
                 >
-                  <span className="font-semibold text-[#60a5fa]">[{r.webRank}]</span>
+                  <span className="font-semibold text-azure2">[{r.webRank}]</span>
                   {r.domain}
                 </a>
               ))}
@@ -316,7 +316,7 @@ function AnswerCard({ data }: { data: GeoSearchPayload }) {
           )}
         </>
       ) : (
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-3 text-sm leading-relaxed text-dim">
           Answer preview unavailable for this run — the GEO ratings below were estimated from snippet signals instead.
         </p>
       )}
@@ -327,32 +327,32 @@ function AnswerCard({ data }: { data: GeoSearchPayload }) {
 function HowItWorks() {
   return (
     <section aria-label="How the geo rating works" className="mt-6">
-      <h2 className="text-center text-[clamp(1.6rem,3.5vw,2.2rem)] font-light tracking-[-0.02em] text-zinc-50">
+      <h2 className="text-center text-[clamp(1.6rem,3.5vw,2.2rem)] font-light tracking-[-0.02em] text-bright">
         How the rating works.
       </h2>
-      <div className="mx-auto mt-6 max-w-2xl border-t border-white/10">
+      <div className="mx-auto mt-6 max-w-2xl border-t border-hair/10">
         <details className="group">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[15px] font-medium text-zinc-100 transition-colors hover:text-[#60a5fa]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[15px] font-medium text-body transition-colors hover:text-azure2">
             The four signals — and the honest limits
-            <span aria-hidden className="text-lg text-zinc-500 transition-transform group-open:rotate-45">
+            <span aria-hidden className="text-lg text-faint transition-transform group-open:rotate-45">
               +
             </span>
           </summary>
-          <div className="grid gap-2.5 pb-5 text-[14px] leading-relaxed text-zinc-400">
+          <div className="grid gap-2.5 pb-5 text-[14px] leading-relaxed text-dim">
             <p>
-              <strong className="font-semibold text-zinc-100">citability 35%</strong> — quotable definitions, concrete
+              <strong className="font-semibold text-body">citability 35%</strong> — quotable definitions, concrete
               numbers, claims an answer engine could repeat verbatim.
             </p>
             <p>
-              <strong className="font-semibold text-zinc-100">structure 25%</strong> — answer-first signals: direct
+              <strong className="font-semibold text-body">structure 25%</strong> — answer-first signals: direct
               answers, steps, lists, tables, comparisons.
             </p>
             <p>
-              <strong className="font-semibold text-zinc-100">freshness 20%</strong> — recency signals, weighted by how
+              <strong className="font-semibold text-body">freshness 20%</strong> — recency signals, weighted by how
               much the query needs up-to-date information.
             </p>
             <p>
-              <strong className="font-semibold text-zinc-100">entity 20%</strong> — unambiguous identity: named product,
+              <strong className="font-semibold text-body">entity 20%</strong> — unambiguous identity: named product,
               brand or niche, clear about-ness.
             </p>
             <p>
@@ -364,7 +364,7 @@ function HowItWorks() {
             </p>
           </div>
         </details>
-        <div className="border-t border-white/10" />
+        <div className="border-t border-hair/10" />
       </div>
     </section>
   );
@@ -401,23 +401,23 @@ function Landing({ input, setInput, onSubmit, busy }: {
           aria-hidden
           className="pointer-events-none absolute inset-x-0 -top-10 mx-auto h-72 w-[44rem] max-w-full bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.10),transparent_65%)]"
         />
-        <p className="zs-mono relative text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+        <p className="zs-mono relative text-[11px] uppercase tracking-[0.22em] text-faint">
           geo-first search · live web · ranked for ai answers
         </p>
-        <h1 className="relative mx-auto mt-6 max-w-4xl text-[clamp(2.6rem,7.5vw,4.9rem)] font-light leading-[1.05] tracking-[-0.025em] text-zinc-50">
+        <h1 className="relative mx-auto mt-6 max-w-4xl text-[clamp(2.6rem,7.5vw,4.9rem)] font-light leading-[1.05] tracking-[-0.025em] text-bright">
           Search the web,
           <br />
-          <em className="italic text-zinc-400">for AI answers.</em>
+          <em className="italic text-dim">for AI answers.</em>
         </h1>
-        <p className="relative mx-auto mt-6 max-w-[470px] text-[16px] leading-relaxed text-zinc-400">
+        <p className="relative mx-auto mt-6 max-w-[470px] text-[16px] leading-relaxed text-dim">
           Google ranks blue links by SEO. zSearch ranks sources by GEO — Generative Engine Optimization — how likely each
-          one is to be <span className="text-zinc-200">cited inside AI answers</span>. Every result carries its GEO
+          one is to be <span className="text-body">cited inside AI answers</span>. Every result carries its GEO
           rating.
         </p>
 
         <div className="relative mt-10">
           <ConsoleSearch value={input} onChange={setInput} onSubmit={onSubmit} busy={busy} />
-          <p className="zs-mono mt-5 text-[11px] text-zinc-600">
+          <p className="zs-mono mt-5 text-[11px] text-deep">
             10 live sources per search · scored 0–100 · free, no signup
           </p>
         </div>
@@ -431,7 +431,7 @@ function Landing({ input, setInput, onSubmit, busy }: {
                 setInput(ex);
                 onSubmit(ex);
               }}
-              className="zs-mono rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-[12px] text-zinc-400 transition-colors hover:border-white/30 hover:text-zinc-200"
+              className="zs-mono rounded-full border border-hair/10 bg-hair/[0.03] px-3.5 py-1.5 text-[12px] text-dim transition-colors hover:border-hair/30 hover:text-body"
             >
               {ex}
             </button>
@@ -440,37 +440,37 @@ function Landing({ input, setInput, onSubmit, busy }: {
       </section>
 
       {/* comparison: same web, different ranking */}
-      <section className="mt-20 border-t border-white/10 md:mt-28">
+      <section className="mt-20 border-t border-hair/10 md:mt-28">
         <div className="px-5 py-16 md:py-24">
-          <h2 className="text-center text-[clamp(1.9rem,4.5vw,2.9rem)] font-light leading-tight tracking-[-0.02em] text-zinc-50">
-            Same web. <span className="text-zinc-400">Different ranking.</span>
+          <h2 className="text-center text-[clamp(1.9rem,4.5vw,2.9rem)] font-light leading-tight tracking-[-0.02em] text-bright">
+            Same web. <span className="text-dim">Different ranking.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-center text-[15px] leading-relaxed text-zinc-400">
+          <p className="mx-auto mt-4 max-w-md text-center text-[15px] leading-relaxed text-dim">
             What each engine optimizes for, side by side.
           </p>
-          <div className="mx-auto mt-12 max-w-4xl overflow-x-auto rounded-xl border border-white/10">
+          <div className="mx-auto mt-12 max-w-4xl overflow-x-auto rounded-xl border border-hair/10">
             <table className="w-full min-w-[620px] border-collapse text-left align-top text-[14px]">
               <thead>
-                <tr className="bg-[#0a0a0b]">
-                  <th scope="col" className="zs-mono px-4 py-4 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500 md:px-5">
+                <tr className="bg-surface">
+                  <th scope="col" className="zs-mono px-4 py-4 text-[11px] font-medium uppercase tracking-[0.18em] text-faint md:px-5">
                     compare
                   </th>
-                  <th scope="col" className="zs-mono px-4 py-4 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500 md:px-5">
+                  <th scope="col" className="zs-mono px-4 py-4 text-[11px] font-medium uppercase tracking-[0.18em] text-faint md:px-5">
                     seo search
                   </th>
-                  <th scope="col" className="zs-mono bg-[rgba(59,130,246,0.06)] px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#60a5fa] md:px-5">
+                  <th scope="col" className="zs-mono bg-[rgba(59,130,246,0.06)] px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-azure2 md:px-5">
                     zsearch · geo
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARE.map(([label, seo, geo]) => (
-                  <tr key={label} className="border-t border-white/[0.07]">
-                    <th scope="row" className="px-4 py-4 text-[14px] font-medium text-zinc-100 md:px-5">
+                  <tr key={label} className="border-t border-hair/[0.07]">
+                    <th scope="row" className="px-4 py-4 text-[14px] font-medium text-body md:px-5">
                       {label}
                     </th>
-                    <td className="px-4 py-4 text-[14px] leading-relaxed text-zinc-400 md:px-5">{seo}</td>
-                    <td className="bg-[rgba(59,130,246,0.06)] px-4 py-4 text-[14px] font-medium leading-relaxed text-zinc-100 md:px-5">
+                    <td className="px-4 py-4 text-[14px] leading-relaxed text-dim md:px-5">{seo}</td>
+                    <td className="bg-[rgba(59,130,246,0.06)] px-4 py-4 text-[14px] font-medium leading-relaxed text-body md:px-5">
                       {geo}
                     </td>
                   </tr>
@@ -482,23 +482,23 @@ function Landing({ input, setInput, onSubmit, busy }: {
       </section>
 
       {/* what geo measures */}
-      <section className="border-t border-white/10">
+      <section className="border-t border-hair/10">
         <div className="px-5 py-16 md:py-24">
-          <h2 className="text-center text-[clamp(1.9rem,4.5vw,2.9rem)] font-light leading-tight tracking-[-0.02em] text-zinc-50">
+          <h2 className="text-center text-[clamp(1.9rem,4.5vw,2.9rem)] font-light leading-tight tracking-[-0.02em] text-bright">
             What GEO measures.
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-center text-[15px] leading-relaxed text-zinc-400">
+          <p className="mx-auto mt-4 max-w-lg text-center text-[15px] leading-relaxed text-dim">
             Four signals, one number — how citable a source is inside generative answers.
           </p>
           <div className="mx-auto mt-12 grid max-w-4xl gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
             {SIGNALS.map((s) => (
               <div key={s.title}>
-                <h3 className="text-[16px] font-semibold tracking-tight text-zinc-100">{s.title}</h3>
-                <p className="mt-2 text-[14px] leading-relaxed text-zinc-400">{s.body}</p>
+                <h3 className="text-[16px] font-semibold tracking-tight text-body">{s.title}</h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-dim">{s.body}</p>
               </div>
             ))}
           </div>
-          <p className="zs-mono mx-auto mt-16 max-w-2xl text-center text-[11px] leading-relaxed text-zinc-600">
+          <p className="zs-mono mx-auto mt-16 max-w-2xl text-center text-[11px] leading-relaxed text-deep">
             live web results · geo ratings are estimates scored from public snippets · not affiliated with the ranked
             sites
           </p>
@@ -511,7 +511,7 @@ function Landing({ input, setInput, onSubmit, busy }: {
 function Loading({ stage }: { stage: number }) {
   return (
     <div className="grid gap-4 pt-4" aria-live="polite" aria-label="Searching and scoring">
-      <p className="zs-mono text-[12px] text-[#60a5fa]">
+      <p className="zs-mono text-[12px] text-azure2">
         {LOAD_STAGES[stage]}
         <span aria-hidden className="animate-pulse">
           ▍
@@ -520,17 +520,17 @@ function Loading({ stage }: { stage: number }) {
       {[0, 1, 2, 3].map((i) => (
         <div
           key={i}
-          className="animate-pulse rounded-[14px] border border-white/10 bg-[#0a0a0b] p-5"
+          className="animate-pulse rounded-[14px] border border-hair/10 bg-surface p-5"
           style={{ opacity: 1 - i * 0.15 }}
         >
           <div className="flex items-center justify-between gap-4">
             <div className="grid flex-1 gap-2.5">
-              <div className="h-3 w-44 rounded bg-white/10" />
-              <div className="h-4 w-3/4 rounded bg-white/10" />
-              <div className="h-3 w-full rounded bg-white/[0.06]" />
-              <div className="h-3 w-5/6 rounded bg-white/[0.06]" />
+              <div className="h-3 w-44 rounded bg-hair/10" />
+              <div className="h-4 w-3/4 rounded bg-hair/10" />
+              <div className="h-3 w-full rounded bg-hair/[0.06]" />
+              <div className="h-3 w-5/6 rounded bg-hair/[0.06]" />
             </div>
-            <div className="h-16 w-16 shrink-0 rounded-full bg-white/10 md:h-[72px] md:w-[72px]" />
+            <div className="h-16 w-16 shrink-0 rounded-full bg-hair/10 md:h-[72px] md:w-[72px]" />
           </div>
         </div>
       ))}
@@ -612,20 +612,20 @@ export function SearchClient() {
       : null;
 
   return (
-    <div className="zs flex min-h-screen flex-col bg-[#050505] text-zinc-100 antialiased selection:bg-[#3b82f6]/30">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#050505]/85 backdrop-blur-md">
+    <div className="zs flex min-h-screen flex-col bg-canvas text-body antialiased selection:bg-azure/30">
+      <header className="sticky top-0 z-40 border-b border-hair/10 bg-canvas/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3.5 md:px-8">
           <Link href="/search" className="flex items-center gap-2.5">
             <span
               aria-hidden
-              className="flex h-6 w-6 items-center justify-center rounded-[5px] bg-zinc-50 text-[13px] font-semibold leading-none text-zinc-950"
+              className="flex h-6 w-6 items-center justify-center rounded-[5px] bg-bright text-[13px] font-semibold leading-none text-canvas"
             >
               z
             </span>
-            <span className="text-[15px] font-semibold tracking-tight text-zinc-50">zSearch</span>
-            <span className="hidden text-[12px] text-zinc-500 sm:inline">by GLM Bonus Radar</span>
+            <span className="text-[15px] font-semibold tracking-tight text-bright">zSearch</span>
+            <span className="hidden text-[12px] text-faint sm:inline">by GLM Bonus Radar</span>
           </Link>
-          <Link href="/" className="text-[14px] tracking-tight text-zinc-100 transition-colors hover:text-zinc-400">
+          <Link href="/" className="text-[14px] tracking-tight text-body transition-colors hover:text-dim">
             ← radar
           </Link>
         </div>
@@ -644,10 +644,10 @@ export function SearchClient() {
 
         {phase === "error" && !data && (
           <div className="mx-auto max-w-xl px-5 pb-20 pt-16 text-center">
-            <h1 className="text-[clamp(2rem,5vw,3rem)] font-light tracking-[-0.02em] text-zinc-50">
-              Search the web, <em className="italic text-zinc-400">for AI answers.</em>
+            <h1 className="text-[clamp(2rem,5vw,3rem)] font-light tracking-[-0.02em] text-bright">
+              Search the web, <em className="italic text-dim">for AI answers.</em>
             </h1>
-            <p className="mx-auto mt-6 max-w-md rounded-[14px] border border-white/10 bg-[#0a0a0b] px-4 py-3 text-[14px] leading-relaxed text-zinc-200">
+            <p className="mx-auto mt-6 max-w-md rounded-[14px] border border-hair/10 bg-surface px-4 py-3 text-[14px] leading-relaxed text-body">
               {errorMsg}
             </p>
             <div className="mt-8">
@@ -661,7 +661,7 @@ export function SearchClient() {
             <div className="grid gap-3">
               <CompactSearch value={input} onChange={setInput} onSubmit={submit} busy={false} />
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="zs-mono text-[11px] leading-relaxed text-zinc-500" aria-live="polite">
+                <p className="zs-mono text-[11px] leading-relaxed text-faint" aria-live="polite">
                   {data.results.length} sources · GEO-ranked in {(data.tookMs / 1000).toFixed(1)}s ·{" "}
                   {data.mode === "model"
                     ? "scored by GLM from public snippets"
@@ -670,7 +670,7 @@ export function SearchClient() {
                 <div
                   role="group"
                   aria-label="Result ordering"
-                  className="flex items-center gap-1 rounded-full border border-white/10 bg-[#0a0a0b] p-1"
+                  className="flex items-center gap-1 rounded-full border border-hair/10 bg-surface p-1"
                 >
                   {(["geo", "web"] as const).map((mode) => (
                     <button
@@ -680,8 +680,8 @@ export function SearchClient() {
                       onClick={() => setOrder(mode)}
                       className={`zs-mono rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors ${
                         order === mode
-                          ? "bg-zinc-50 text-zinc-950"
-                          : "text-zinc-500 hover:text-zinc-200"
+                          ? "bg-bright text-canvas"
+                          : "text-faint hover:text-body"
                       }`}
                     >
                       {mode === "geo" ? "geo rank" : "web rank"}
@@ -690,7 +690,7 @@ export function SearchClient() {
                 </div>
               </div>
               {phase === "error" && (
-                <p className="rounded-[14px] border border-white/10 bg-[#0a0a0b] px-4 py-3 text-[14px] leading-relaxed text-zinc-200">
+                <p className="rounded-[14px] border border-hair/10 bg-surface px-4 py-3 text-[14px] leading-relaxed text-body">
                   {errorMsg}
                 </p>
               )}
@@ -711,20 +711,20 @@ export function SearchClient() {
         )}
       </main>
 
-      <footer className="mt-auto border-t border-white/10">
+      <footer className="mt-auto border-t border-hair/10">
         <div className="mx-auto max-w-5xl px-5 py-10 md:px-8">
-          <p className="max-w-3xl text-[13px] leading-relaxed text-zinc-500">
+          <p className="max-w-3xl text-[13px] leading-relaxed text-faint">
             zSearch — a GEO-first search experiment by{" "}
             <Link
               href="/"
-              className="text-zinc-300 underline decoration-dotted underline-offset-4 transition-colors hover:text-[#60a5fa]"
+              className="text-soft underline decoration-dotted underline-offset-4 transition-colors hover:text-azure2"
             >
               GLM Bonus Radar
             </Link>
             . Live web results via the z.ai search function; GEO ratings are estimates computed for this page, not
             rankings published by the sites themselves. Not affiliated with Google or any answer engine.
           </p>
-          <p className="zs-mono mt-3 text-[12px] leading-relaxed text-zinc-500">
+          <p className="zs-mono mt-3 text-[12px] leading-relaxed text-faint">
             Want your own site to score better here?{" "}
             <Link href="/scanner" className="font-medium transition-colors" style={{ color: ACCENT_HOVER }}>
               Run the free SEO·GEO·Perf scanner →

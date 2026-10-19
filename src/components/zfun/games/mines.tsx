@@ -224,7 +224,7 @@ export default function MinesGame() {
           className={`zs-pixel h-12 rounded-full border px-6 text-[9px] leading-none transition-colors ${
             flagModeUi
               ? "border-[var(--rc-accent)] bg-[rgba(59,130,246,0.14)] text-[var(--rc-brand)]"
-              : "border-white/10 bg-white/[0.03] text-zinc-400"
+              : "border-hair/10 bg-hair/[0.03] text-dim"
           }`}
         >
           FLAG {flagModeUi ? "ON" : "OFF"}

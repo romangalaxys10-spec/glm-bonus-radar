@@ -44,7 +44,7 @@ export function AgentAdStage() {
   }, []);
 
   return (
-    <div ref={measureRef} className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0a0e0b] shadow-[0_18px_55px_-30px_rgba(0,0,0,0.6)]">
+    <div ref={measureRef} className="relative overflow-hidden rounded-2xl border border-hair/10 bg-[#0a0e0b] shadow-[0_18px_55px_-30px_rgba(0,0,0,0.6)]">
       <AgentAdPlayer key={variant} autoPlay={!reducedMotion} variant={variant as RemotionVariant} />
 
       {/* persistent chrome — always visible, never covered by playback */}
@@ -52,10 +52,10 @@ export function AgentAdStage() {
         className="pointer-events-none absolute left-3 right-3 top-3 flex flex-wrap items-start justify-between gap-2 md:left-4 md:right-4 md:top-4"
         aria-hidden
       >
-        <span className="rounded-full border border-white/15 bg-[#050505]/85 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-[#d4d4d8] backdrop-blur-sm md:text-[10px] md:tracking-[0.18em]">
+        <span className="rounded-full border border-hair/15 bg-canvas/85 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-soft backdrop-blur-sm md:text-[10px] md:tracking-[0.18em]">
           simulated ad · walkthrough
         </span>
-        <span className="rounded-full border border-white/15 bg-[#050505]/85 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-[#60a5fa] backdrop-blur-sm md:text-[10px] md:tracking-[0.18em]">
+        <span className="rounded-full border border-hair/15 bg-canvas/85 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-azure2 backdrop-blur-sm md:text-[10px] md:tracking-[0.18em]">
           powered by xShredo
         </span>
       </div>

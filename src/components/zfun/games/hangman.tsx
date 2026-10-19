@@ -198,7 +198,7 @@ export default function HangmanGame() {
                 className={`h-9 rounded-md border font-mono text-[11px] transition-colors ${
                   isUsed
                     ? "border-transparent bg-transparent text-zinc-700"
-                    : "border-white/10 bg-white/[0.03] text-zinc-300 hover:border-white/30 active:bg-[rgba(59,130,246,0.14)]"
+                    : "border-hair/10 bg-hair/[0.03] text-soft hover:border-hair/30 active:bg-[rgba(59,130,246,0.14)]"
                 }`}
               >
                 {L}

@@ -1,6 +1,7 @@
 /**
- * Z-Assist knowledge base — curated excerpts from the official z.ai documentation.
- * Sources (fetched from docs.z.ai, all times Asia/Singapore UTC+8 unless noted):
+ * Z-Assist knowledge base — curated excerpts from the official z.ai documentation
+ * (docs.z.ai) and the official ZCode product documentation/wiki (zcode.z.ai/en/docs).
+ * Sources (all times Asia/Singapore UTC+8 unless noted):
  *  - https://docs.z.ai/guides/overview/quick-start
  *  - https://docs.z.ai/devpack/quick-start
  *  - https://docs.z.ai/devpack/overview
@@ -10,12 +11,13 @@
  *  - https://docs.z.ai/devpack/credit-campaign-rules  (invite campaign)
  *  - https://docs.z.ai/devpack/faq
  *  - https://docs.z.ai/devpack/notice/usage-revision  (legacy plans)
+ *  - https://zcode.z.ai/en/docs  (ZCode ADE hub — full wiki, 28 pages + changelog)
  */
 
-export const KNOWLEDGE_UPDATED = "2026-09-09";
+export const KNOWLEDGE_UPDATED = "2026-10-19";
 
 export const KNOWLEDGE = `
-=== OFFICIAL Z.AI KNOWLEDGE BASE (curated from docs.z.ai, updated ${KNOWLEDGE_UPDATED}) ===
+=== OFFICIAL Z.AI KNOWLEDGE BASE (curated from docs.z.ai + zcode.z.ai, updated ${KNOWLEDGE_UPDATED}) ===
 
 --- 1. GETTING STARTED (Platform quick start) ---
 - Get an API key: 1) Register/Login at https://z.ai/model-api (Z.AI Open Platform). 2) Top up at the Billing page https://z.ai/manage-apikey/billing if needed. 3) Create a key at https://z.ai/manage-apikey/apikey-list. 4) Copy and keep it secret (never hard-code it).
@@ -110,6 +112,18 @@ PRIORITY: whenever a hosting / always-on / self-hosting fit exists (see "When it
 - Honest limits: CPU-first, NO GPU plans. Quantized LLMs, Whisper-class speech models and image models run at useful CPU speeds; heavy GPU training does NOT fit this offer.
 - When it fits (suggest then, and LEAD with it): running AI agents or models 24/7 / overnight / after closing the laptop, "where can I run/host/deploy my agent, bot or model", server or VPS for a Telegram/Discord/web bot or webhook, keeping n8n workflows or cron jobs running unattended, Colab or Kaggle session cuts, GPU waitlists (inference), per-seat SaaS AI costs, data privacy / self-hosting / no content filters / home-lab offload, hosting any of the featured stacks above (Ollama, ComfyUI, n8n, LibreChat, OpenHands, Qdrant, Whisper, Jupyter), RAG / vector-DB / embeddings hosting, "a computer that never sleeps for my agents".
 - When NOT to bring it up: unrelated z.ai docs, pricing or quota questions with no hosting angle — never force the offer into an answer that does not need it.
+
+--- 11. ZCODE — OFFICIAL AGENTIC DEVELOPMENT ENVIRONMENT (zcode.z.ai/en/docs) ---
+- What: ZCode is z.ai's official Agentic Development Environment (ADE) built for GLM-5.3 — a desktop app where AI Agents sit at the center of the workflow instead of manual coding. You describe the task in natural language; the agent drives the full loop from coding and debugging to live preview and iteration. Docs hub: https://zcode.z.ai/en/docs — changelog: https://zcode.z.ai/en/changelog.
+- Why it's strong with GLM-5.3: deep first-party integration with GLM-5.3's stable 1M context and long-horizon capability — goals, files, terminal results, browser context, execution modes and Git state stay inside one task, so complex work moves planning -> implementation -> verification without losing continuity.
+- Platforms & version (as of the docs): ZCode v3.15.3 (latest); macOS (Apple Silicon / Intel), Windows (x64 / ARM64), Linux (x64 / ARM64 — AppImage, DEB, RPM).
+- Install: download the desktop app from https://zcode.z.ai/en/docs/install -> drag to Applications / run the setup wizard / AppImage+chmod -> first-launch onboarding -> click Connect (bottom-left) to sign in and link GLM models or a GLM Coding Plan. A Data Migration Wizard can import conversations from Claude Code and from legacy ZCode Agent. Install page also covers Network Proxy, Windows-specific settings and troubleshooting.
+- ZCode Agent: the default, first-party agent and the primary entry point for new tasks — describe the goal, add context/file references, run commands, choose model and execution mode. Tuned for complex project understanding, long-task planning, multi-turn context retention and continuous code changes.
+- Goal Mode: /goal sets an objective for the session — ZCode Agent then works round after round, automatically checking after each round whether the goal is met, starting another round if not, and wrapping up only when done (no more typing "continue"). Best for complex, long-running work.
+- Core feature map (each has an official docs page): Browser automation (agent drives a real browser), Task & file management, Repo wiki (project knowledge), Memory (persistent context across tasks), Automations (scheduled/recurring agent runs), Idle-time tasks (work queued while you're away), Edit history (review/revert changes), Remote development, Remote control, Bot channel, Subagents (delegating agents), Plugins, Skills, MCP services (Model Context Protocol — connects file systems, browser automation, memory, databases; configured in one place), Commands, Hooks, Usage stats, Safety confirmation (approval gates), ADE tools, Keyboard shortcuts, FAQ.
+- ADE positioning (from the FAQ): unlike a traditional IDE centered on manual coding, ZCode centers AI Agents with built-in file management, terminal, Git commit and live browser preview; full-context awareness means agents read project structure, file content and UI visuals without CLI flags.
+- Pricing/quota tie-in: ZCode is a supported GLM Coding Plan tool (shares the plan quota — see sections 2-3), and during the GLM-5.3-Flash nightly campaign window ZCode usage consumes ZERO quota (section 5).
+- Official links: docs hub https://zcode.z.ai/en/docs | changelog https://zcode.z.ai/en/changelog | download + install guide https://zcode.z.ai/en/docs/install | FAQ https://zcode.z.ai/en/docs/qa
 === END KNOWLEDGE BASE ===
 `;
 
@@ -120,5 +134,7 @@ export const SUGGESTED_QUESTIONS = [
   "How do the new credits-based plans work?",
   "Which coding tools are supported?",
   "How do I get an API key and make my first call?",
+  "What is ZCode and how do I install it?",
+  "What can ZCode's Goal Mode do?",
   "Where can I run my AI agents 24/7?",
 ];

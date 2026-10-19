@@ -54,13 +54,13 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
     const key = `${keyBase}-i${i++}`;
     if (tok.startsWith("**")) {
       nodes.push(
-        <strong key={key} className="font-semibold text-[#fafafa]">
+        <strong key={key} className="font-semibold text-bright">
           {tok.slice(2, -2)}
         </strong>,
       );
     } else if (tok.startsWith("`")) {
       nodes.push(
-        <code key={key} className="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[12px] text-[#60a5fa]">
+        <code key={key} className="rounded bg-hair/[0.06] px-1 py-0.5 font-mono text-[12px] text-azure2">
           {tok.slice(1, -1)}
         </code>,
       );
@@ -73,7 +73,7 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
             href={mm[2]}
             target="_blank"
             rel="noopener"
-            className="underline decoration-dotted underline-offset-2 transition-colors hover:text-[#60a5fa]"
+            className="underline decoration-dotted underline-offset-2 transition-colors hover:text-azure2"
           >
             {mm[1]}
           </a>,
@@ -87,7 +87,7 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
           href={tok}
           target="_blank"
           rel="noopener"
-          className="font-mono text-[12px] underline decoration-dotted underline-offset-2 transition-colors hover:text-[#60a5fa]"
+          className="font-mono text-[12px] underline decoration-dotted underline-offset-2 transition-colors hover:text-azure2"
         >
           {label}
         </a>,
@@ -108,7 +108,7 @@ function renderMarkdown(text: string): ReactNode[] {
       out.push(
         <pre
           key={`c${k++}`}
-          className="mt-1 overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[12px] leading-relaxed text-zinc-200"
+          className="mt-1 overflow-x-auto rounded-lg border border-hair/10 bg-black/40 p-3 font-mono text-[12px] leading-relaxed text-body"
         >
           <code>{part.replace(/\n$/, "")}</code>
         </pre>,
@@ -142,7 +142,7 @@ function renderMarkdown(text: string): ReactNode[] {
       flush();
       if (/^(source|sources):/i.test(t)) {
         out.push(
-          <p key={`s${k++}`} className="mt-1 font-mono text-[10.5px] text-zinc-500">
+          <p key={`s${k++}`} className="mt-1 font-mono text-[10.5px] text-faint">
             {renderInline(t, `s${k}`)}
           </p>,
         );
@@ -178,7 +178,7 @@ function ZAvatar() {
   return (
     <div
       aria-hidden
-      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#3b82f6]/40 bg-[#3b82f6]/15 font-mono text-[13px] font-semibold text-[#60a5fa]"
+      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-azure/40 bg-azure/15 font-mono text-[13px] font-semibold text-azure2"
     >
       Z
     </div>
@@ -204,7 +204,7 @@ export function MessageBubble({ msg, revealText }: { msg: ChatMsg; revealText?: 
   if (msg.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-md border border-[#3b82f6]/35 bg-[#3b82f6]/15 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-zinc-50 sm:max-w-[75%]">
+        <div className="max-w-[85%] rounded-2xl rounded-br-md border border-azure/35 bg-azure/15 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-bright sm:max-w-[75%]">
           <p className="whitespace-pre-wrap">{msg.content}</p>
         </div>
       </div>
@@ -214,7 +214,7 @@ export function MessageBubble({ msg, revealText }: { msg: ChatMsg; revealText?: 
   return (
     <div className="group flex gap-2.5">
       <ZAvatar />
-      <div className={`min-w-0 max-w-[calc(100%-2.75rem)] flex-1 ${msg.error ? "text-[#f87171]" : "text-zinc-200"}`}>
+      <div className={`min-w-0 max-w-[calc(100%-2.75rem)] flex-1 ${msg.error ? "text-alert" : "text-body"}`}>
         <div className="space-y-1.5 text-[13.5px] leading-relaxed">
           {body.split(/\n{2,}/).map((para, i) => (
             <div key={i}>{renderMarkdown(para)}</div>
@@ -226,7 +226,7 @@ export function MessageBubble({ msg, revealText }: { msg: ChatMsg; revealText?: 
             <button
               type="button"
               onClick={copy}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 transition-colors hover:bg-white/5 hover:text-[#60a5fa]"
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] text-faint transition-colors hover:bg-hair/5 hover:text-azure2"
               aria-label="Copy reply"
             >
               {copied ? <CheckIcon className="h-3 w-3" /> : <CopyIcon className="h-3 w-3" />}
@@ -245,15 +245,15 @@ export function ThinkingBubble() {
   return (
     <div className="flex gap-2.5" aria-live="polite" aria-label="Z-Assist is thinking">
       <ZAvatar />
-      <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-md border border-white/10 bg-[#0a0a0b] px-4 py-3">
+      <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-md border border-hair/10 bg-surface px-4 py-3">
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#60a5fa]"
+            className="h-1.5 w-1.5 animate-bounce rounded-full bg-azure2"
             style={{ animationDelay: `${i * 140}ms` }}
           />
         ))}
-        <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+        <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">
           thinking
         </span>
       </div>
@@ -278,13 +278,13 @@ export const STARTERS: Starter[] = [
 export function EmptyState({ name, onPick }: { name: string; onPick: (q: string) => void }) {
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-10 text-center sm:py-16">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#3b82f6]/40 bg-[#3b82f6]/15 font-mono text-xl font-semibold text-[#60a5fa]">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-azure/40 bg-azure/15 font-mono text-xl font-semibold text-azure2">
         Z
       </div>
-      <h2 className="mt-4 text-[19px] font-light tracking-tight text-zinc-50 sm:text-[22px]">
+      <h2 className="mt-4 text-[19px] font-light tracking-tight text-bright sm:text-[22px]">
         Hi {name} — how can I help?
       </h2>
-      <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-zinc-400">
+      <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-dim">
         Ask anything about GLM models, coding plans, API usage, quotas or bonus windows — answers
         come from the official z.ai docs, with tables and live tools you can interact with.
       </p>
@@ -294,16 +294,16 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (q: string)
             key={s.q}
             type="button"
             onClick={() => onPick(s.q)}
-            className="flex items-baseline gap-2 rounded-xl border border-white/10 bg-[#0a0a0b] px-3.5 py-2.5 text-left text-[12.5px] text-zinc-300 transition-colors hover:border-[#3b82f6]/50 hover:bg-[#3b82f6]/[0.07] hover:text-zinc-100"
+            className="flex items-baseline gap-2 rounded-xl border border-hair/10 bg-surface px-3.5 py-2.5 text-left text-[12.5px] text-soft transition-colors hover:border-azure/50 hover:bg-azure/[0.07] hover:text-body"
           >
-            <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.14em] text-[#3b82f6]">
+            <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.14em] text-azure">
               {s.tag}
             </span>
             <span className="min-w-0">{s.q}</span>
           </button>
         ))}
       </div>
-      <p className="mt-5 font-mono text-[10px] leading-relaxed text-zinc-600">
+      <p className="mt-5 font-mono text-[10px] leading-relaxed text-deep">
         grounded in docs.z.ai · hourly doc sync · community portal (not official z.ai support)
       </p>
     </div>

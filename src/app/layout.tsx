@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { InstallPrompt } from "@/components/portal/install-prompt";
-import { PALETTE_STORAGE_KEY } from "@/lib/theme";
+import { MODE_STORAGE_KEY, PALETTE_STORAGE_KEY } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "GLM Bonus Radar — Peak Rates, Bonus Windows & Token Discounts",
@@ -45,20 +45,24 @@ export const viewport: Viewport = {
 };
 
 /**
- * Runs before first paint: restores palette + color mode from localStorage
- * (same rc-* keys the original tracker used, namespaced to br-*), sets
- * data-palette and the .dark class on <html>.
+ * Runs before first paint: resolves the color mode (br-mode: light|dark,
+ * default dark — the xShredo design) into the .light/.dark class + native
+ * color-scheme, and keeps the legacy palette key harmless.
  */
 const themeBoot = `
 (function(){try{
   var d=document.documentElement;
-  /* xShredo promo design: fixed dark — palette/mode storage kept harmless */
+  var m=localStorage.getItem("${MODE_STORAGE_KEY}");
+  if(m!=="light"&&m!=="dark")m="dark";
+  d.classList.remove("light","dark");
+  d.classList.add(m);
+  d.style.colorScheme=m;
   var p=localStorage.getItem("${PALETTE_STORAGE_KEY}")||"brook";
   d.dataset.palette=p;
-  d.classList.add("dark");
-  d.style.colorScheme="dark";
 }catch(e){
-  document.documentElement.classList.add("dark");
+  var d2=document.documentElement;
+  d2.classList.add("dark");
+  d2.style.colorScheme="dark";
 }})();
 `;
 

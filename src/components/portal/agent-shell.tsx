@@ -14,6 +14,7 @@ import {
   uid,
 } from "@/components/portal/agent-messages";
 import { CONV_KEY, MODEL_KEY, type AgentUser } from "@/components/portal/agent-storage";
+import { ModeToggle } from "@/components/portal/mode-toggle";
 
 /**
  * Z-Assist chat shell — the chat.z.ai-style workspace: conversation drawer
@@ -359,9 +360,9 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
   );
 
   return (
-    <div className="zs flex h-[100dvh] overflow-hidden bg-[#050505] text-zinc-100 antialiased selection:bg-[#3b82f6]/30">
+    <div className="zs flex h-[100dvh] overflow-hidden bg-canvas text-body antialiased selection:bg-azure/30">
       {/* Desktop sidebar */}
-      <aside className="hidden w-[280px] shrink-0 flex-col border-r border-white/10 bg-[#0a0a0b] md:flex">
+      <aside className="hidden w-[280px] shrink-0 flex-col border-r border-hair/10 bg-surface md:flex">
         {sidebar}
       </aside>
 
@@ -374,12 +375,12 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
             onClick={() => setDrawer(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
           />
-          <div className="absolute inset-y-0 left-0 flex w-[86%] max-w-[320px] flex-col border-r border-white/10 bg-[#0a0a0b] shadow-2xl">
+          <div className="absolute inset-y-0 left-0 flex w-[86%] max-w-[320px] flex-col border-r border-hair/10 bg-surface shadow-2xl">
             <button
               type="button"
               onClick={() => setDrawer(false)}
               aria-label="Close"
-              className="absolute right-2.5 top-2.5 rounded-lg p-1.5 text-zinc-500 hover:bg-white/5 hover:text-zinc-200"
+              className="absolute right-2.5 top-2.5 rounded-lg p-1.5 text-faint hover:bg-hair/5 hover:text-body"
             >
               <XIcon className="h-4 w-4" />
             </button>
@@ -390,22 +391,23 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 bg-[#050505]/90 px-3 backdrop-blur-md sm:px-4">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-hair/10 bg-canvas/90 px-3 backdrop-blur-md sm:px-4">
           <button
             type="button"
             onClick={() => setDrawer(true)}
             aria-label="Open chats menu"
-            className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 md:hidden"
+            className="rounded-lg p-1.5 text-dim transition-colors hover:bg-hair/5 hover:text-body md:hidden"
           >
             <MenuIcon className="h-4 w-4" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-light tracking-tight text-zinc-200">{activeTitle}</p>
-            <p className="hidden font-mono text-[9px] uppercase tracking-[0.18em] text-zinc-600 sm:block">
-              {model === "code" ? "Z-Code · general + vision" : "Z-Assist · grounded in docs.z.ai"}
+            <p className="truncate text-[13px] font-light tracking-tight text-body">{activeTitle}</p>
+            <p className="hidden font-mono text-[9px] uppercase tracking-[0.18em] text-deep sm:block">
+              {model === "code" ? "Z-Code · general + vision" : "Z-Assist · docs.z.ai + zcode.z.ai"}
             </p>
           </div>
-          <div className="flex shrink-0 items-center rounded-full border border-white/10 bg-[#0a0a0b] p-0.5" role="group" aria-label="Agent mode">
+          <ModeToggle className="hidden sm:inline-flex" />
+          <div className="flex shrink-0 items-center rounded-full border border-hair/10 bg-surface p-0.5" role="group" aria-label="Agent mode">
             {(
               [
                 ["assist", "Support"],
@@ -423,7 +425,7 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
                     : "Z-Code — general-purpose engineering & vision"
                 }
                 className={`rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors ${
-                  model === id ? "bg-[#3b82f6] text-white" : "text-zinc-500 hover:text-zinc-200"
+                  model === id ? "bg-azure text-onaccent" : "text-faint hover:text-body"
                 }`}
               >
                 {label}
@@ -435,7 +437,7 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {threadBusy ? (
             <div className="flex h-full items-center justify-center">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600">loading chat…</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-deep">loading chat…</p>
             </div>
           ) : messages.length === 0 ? (
             <EmptyState name={user.name} onPick={(q) => { setInput(q); composerRef.current?.focus(); }} />
@@ -453,9 +455,9 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
           )}
         </div>
 
-        <footer className="shrink-0 border-t border-white/10 bg-[#050505]/95 px-3 pb-3 pt-2.5 sm:px-5">
+        <footer className="shrink-0 border-t border-hair/10 bg-canvas/95 px-3 pb-3 pt-2.5 sm:px-5">
           <div className="mx-auto max-w-3xl">
-            <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-[#0a0a0b] px-3 py-2 transition-colors focus-within:border-[#3b82f6]/50">
+            <div className="flex items-end gap-2 rounded-2xl border border-hair/10 bg-surface px-3 py-2 transition-colors focus-within:border-azure/50">
               <textarea
                 ref={composerRef}
                 value={input}
@@ -465,24 +467,24 @@ export function ChatShell({ user, onSignOut }: { user: AgentUser; onSignOut: () 
                 onKeyDown={onComposerKeyDown}
                 placeholder={model === "code" ? "Ask Z-Code anything — code, debugging, vision…" : "Ask about GLM models, plans, quotas…"}
                 aria-label="Message Z-Assist"
-                className="max-h-40 min-h-[24px] w-full resize-none bg-transparent py-1 text-[16px] leading-relaxed text-zinc-100 outline-none placeholder:text-zinc-600"
+                className="max-h-40 min-h-[24px] w-full resize-none bg-transparent py-1 text-[16px] leading-relaxed text-body outline-none placeholder:text-deep"
               />
               <button
                 type="button"
                 onClick={() => void send()}
                 disabled={sending || input.trim().length === 0}
                 aria-label="Send message"
-                className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3b82f6] text-white transition-[transform,opacity] hover:bg-[#60a5fa] active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-azure text-onaccent transition-[transform,opacity] hover:bg-azure2 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <SendIcon className="h-4 w-4" />
               </button>
             </div>
             <div className="mt-1.5 flex items-center justify-between px-1">
-              <p className="font-mono text-[9.5px] leading-relaxed text-zinc-600">
+              <p className="font-mono text-[9.5px] leading-relaxed text-deep">
                 Enter to send · Shift+Enter for a new line · answers from official z.ai docs — verify critical details
               </p>
               {input.length > 1800 && (
-                <p className="ml-2 shrink-0 font-mono text-[9.5px] text-zinc-500">
+                <p className="ml-2 shrink-0 font-mono text-[9.5px] text-faint">
                   {input.length}/{MAX_INPUT}
                 </p>
               )}
@@ -525,12 +527,12 @@ function SidebarContent({
     <div className="flex h-full min-h-0 flex-col">
       <div className="px-4 pt-4">
         <Link href="/" className="flex items-center gap-2.5" aria-label="GLM Bonus Radar home">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#3b82f6]/40 bg-[#3b82f6]/15 font-mono text-sm font-semibold text-[#60a5fa]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-azure/40 bg-azure/15 font-mono text-sm font-semibold text-azure2">
             Z
           </div>
           <div>
-            <p className="text-[14px] font-medium leading-tight text-zinc-50">Z-Assist</p>
-            <p className="font-mono text-[8.5px] uppercase tracking-[0.2em] text-zinc-500">
+            <p className="text-[14px] font-medium leading-tight text-bright">Z-Assist</p>
+            <p className="font-mono text-[8.5px] uppercase tracking-[0.2em] text-faint">
               z.ai support agent
             </p>
           </div>
@@ -538,7 +540,7 @@ function SidebarContent({
         <button
           type="button"
           onClick={onNewChat}
-          className="mt-4 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-[#3b82f6] text-[12.5px] font-medium text-white transition-colors hover:bg-[#60a5fa] active:scale-[0.98]"
+          className="mt-4 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-azure text-[12.5px] font-medium text-onaccent transition-colors hover:bg-azure2 active:scale-[0.98]"
         >
           <PlusIcon className="h-3.5 w-3.5" />
           New chat
@@ -546,21 +548,21 @@ function SidebarContent({
       </div>
 
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-2.5 pb-2">
-        <p className="px-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-600">chats</p>
+        <p className="px-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-deep">chats</p>
         {listError && (
           <button
             type="button"
             onClick={onRetryList}
-            className="mt-1.5 w-full rounded-lg px-1.5 py-1 text-left text-[11px] text-zinc-500 underline decoration-dotted hover:text-zinc-300"
+            className="mt-1.5 w-full rounded-lg px-1.5 py-1 text-left text-[11px] text-faint underline decoration-dotted hover:text-soft"
           >
             {listError} — retry
           </button>
         )}
         {convs === null && (
-          <p className="mt-2 px-1.5 font-mono text-[10px] text-zinc-600">loading…</p>
+          <p className="mt-2 px-1.5 font-mono text-[10px] text-deep">loading…</p>
         )}
         {convs !== null && convs.length === 0 && (
-          <p className="mt-2 px-1.5 text-[11.5px] leading-relaxed text-zinc-600">
+          <p className="mt-2 px-1.5 text-[11.5px] leading-relaxed text-deep">
             No chats yet — start one and it will wait for you here.
           </p>
         )}
@@ -574,13 +576,13 @@ function SidebarContent({
                   onClick={() => onOpen(c.id)}
                   aria-current={active ? "true" : undefined}
                   className={`w-full rounded-lg px-2.5 py-2 pr-8 text-left transition-colors ${
-                    active ? "bg-[#3b82f6]/[0.14] text-zinc-50" : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-200"
+                    active ? "bg-azure/[0.14] text-bright" : "text-dim hover:bg-hair/[0.05] hover:text-body"
                   }`}
                 >
                   <span className="block truncate text-[12.5px] leading-snug">
                     {c.title || "Untitled chat"}
                   </span>
-                  <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600">
+                  <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.14em] text-deep">
                     {relTime(c.updatedAt)} · {c.count} msg{c.count === 1 ? "" : "s"}
                   </span>
                 </button>
@@ -588,7 +590,7 @@ function SidebarContent({
                   type="button"
                   onClick={() => onDelete(c.id)}
                   aria-label={`Delete chat: ${c.title || "Untitled chat"}`}
-                  className="absolute right-1.5 top-2 rounded-md p-1 text-zinc-600 opacity-0 transition-opacity hover:bg-white/5 hover:text-[#f87171] focus-visible:opacity-100 group-hover:opacity-100"
+                  className="absolute right-1.5 top-2 rounded-md p-1 text-deep opacity-0 transition-opacity hover:bg-hair/5 hover:text-alert focus-visible:opacity-100 group-hover:opacity-100"
                 >
                   <TrashIcon className="h-3.5 w-3.5" />
                 </button>
@@ -598,18 +600,18 @@ function SidebarContent({
         </ul>
       </div>
 
-      <div className="shrink-0 border-t border-white/10 px-3 py-3">
+      <div className="shrink-0 border-t border-hair/10 px-3 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[12px] font-semibold uppercase text-zinc-200">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hair/10 bg-hair/[0.06] text-[12px] font-semibold uppercase text-body">
             {user.name.slice(0, 1)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[12.5px] leading-tight text-zinc-200">{user.name}</p>
+            <p className="truncate text-[12.5px] leading-tight text-body">{user.name}</p>
             <button
               type="button"
               onClick={onCopyToken}
               title="Copy your personal access token"
-              className="inline-flex items-center gap-1 font-mono text-[9.5px] tracking-[0.1em] text-zinc-500 transition-colors hover:text-[#60a5fa]"
+              className="inline-flex items-center gap-1 font-mono text-[9.5px] tracking-[0.1em] text-faint transition-colors hover:text-azure2"
             >
               {copiedToken ? <CheckIcon className="h-2.5 w-2.5" /> : <CopyIcon className="h-2.5 w-2.5" />}
               {user.token}
@@ -620,19 +622,19 @@ function SidebarContent({
             onClick={onSignOut}
             title="Forget this device (chats stay safe under your token)"
             aria-label="Forget this device"
-            className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
+            className="rounded-lg p-1.5 text-faint transition-colors hover:bg-hair/5 hover:text-body"
           >
             <LogoutIcon className="h-3.5 w-3.5" />
           </button>
         </div>
         <Link
           href="/agent-vps"
-          className="mt-2.5 block rounded-xl border border-white/10 bg-[#050505] px-3 py-2 transition-colors hover:border-[#3b82f6]/40"
+          className="mt-2.5 block rounded-xl border border-hair/10 bg-canvas px-3 py-2 transition-colors hover:border-azure/40"
         >
-          <p className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-zinc-600">
+          <p className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-deep">
             sponsored · xshredo
           </p>
-          <p className="mt-0.5 text-[12px] leading-snug text-zinc-300">
+          <p className="mt-0.5 text-[12px] leading-snug text-soft">
             24x7 Agent VPS — run AI agents around the clock, from $5.75/mo →
           </p>
         </Link>

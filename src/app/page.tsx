@@ -15,6 +15,7 @@ import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
 import { ScannerAdBanner } from "@/components/portal/scanner-ad-remotion";
 import { AiVpsBanner } from "@/components/portal/ai-vps-banner";
 import { AgentNavButton } from "@/components/portal/agent-nav-button";
+import { ModeToggle } from "@/components/portal/mode-toggle";
 import { CnOpsSection } from "@/components/portal/cn-ops-section";
 import { ToolsSection } from "@/components/portal/tools-section";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
@@ -142,6 +143,7 @@ export default function Home() {
             </a>
           </nav>
           <div className="order-2 flex items-center gap-2 md:order-3">
+            <ModeToggle />
             <NotificationsBell />
           </div>
         </div>

@@ -421,6 +421,16 @@ export async function runSync(trigger: "boot" | "hourly" | "manual"): Promise<Sy
       update: { payload: JSON.stringify({ prompt: docsPrompt, fetchedAt }) },
     });
 
+    // ZCode product docs (zcode.z.ai/en/docs) ride the same cadence in their
+    // own snapshot — failures here must never fail the main docs.z.ai sync.
+    try {
+      const { runZcodeSync } = await import("@/lib/zcode-docs");
+      const zres = await runZcodeSync();
+      console.log(`[docs-sync] zcode snapshot refreshed: ${zres.okPages}/${zres.total} pages, ${zres.chars} chars`);
+    } catch (zerr) {
+      console.error("[docs-sync] zcode snapshot refresh failed (non-fatal):", zerr);
+    }
+
     if (changedSections.length === 0) {
       const result: SyncResult = {
         status: "unchanged",

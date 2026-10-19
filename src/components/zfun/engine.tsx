@@ -189,7 +189,7 @@ export function Pad({
       } h-12 min-w-12 ${
         active
           ? "border-[var(--rc-accent)] bg-[rgba(59,130,246,0.14)] text-[var(--rc-brand)]"
-          : "border-white/10 bg-white/[0.03] text-zinc-400"
+          : "border-hair/10 bg-hair/[0.03] text-dim"
       }`}
     >
       {label}
@@ -462,22 +462,22 @@ export function GameShell({
           <span className="relative flex h-2 w-2">
             <span
               className={`absolute inline-flex h-full w-full rounded-full ${
-                playing ? "animate-ping bg-[#3b82f6]/60" : ""
+                playing ? "animate-ping bg-azure/60" : ""
               }`}
             />
             <span
               className={`relative inline-flex h-2 w-2 rounded-full ${
-                playing ? "bg-[#3b82f6]" : "bg-zinc-600"
+                playing ? "bg-azure" : "bg-zinc-600"
               }`}
             />
           </span>
-          <span className="zs-pixel text-[10px] text-zinc-200">{title}</span>
+          <span className="zs-pixel text-[10px] text-body">{title}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[11px] text-zinc-400">
-            {scoreLabel} <span className="zs-pixel text-[9px] text-zinc-100">{score}</span>
+          <span className="rounded-full border border-hair/10 bg-hair/[0.03] px-3 py-1 font-mono text-[11px] text-dim">
+            {scoreLabel} <span className="zs-pixel text-[9px] text-body">{score}</span>
           </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[11px] text-zinc-400">
+          <span className="rounded-full border border-hair/10 bg-hair/[0.03] px-3 py-1 font-mono text-[11px] text-dim">
             BEST <span className="zs-pixel text-[9px] text-[var(--rc-brand)]">{best}</span>
           </span>
           <button
@@ -489,7 +489,7 @@ export function GameShell({
               beep(660, 40);
             }}
             aria-label={sndOn ? "Mute sound effects" : "Unmute sound effects"}
-            className="hidden rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[11px] text-zinc-400 transition-colors hover:border-white/30 hover:text-zinc-200 sm:block"
+            className="hidden rounded-full border border-hair/10 bg-hair/[0.03] px-3 py-1 font-mono text-[11px] text-dim transition-colors hover:border-hair/30 hover:text-body sm:block"
           >
             {sndOn ? "SND ON" : "MUTED"}
           </button>
@@ -498,7 +498,7 @@ export function GameShell({
 
       {/* Screen */}
       <div
-        className="relative w-full overflow-hidden rounded-[14px] border border-white/10 bg-[#0a0a0b] p-2 sm:p-3"
+        className="relative w-full overflow-hidden rounded-[14px] border border-hair/10 bg-surface p-2 sm:p-3"
         style={{
           boxShadow:
             "0 30px 80px -20px rgba(59,130,246,0.28), inset 0 1px 0 rgba(255,255,255,0.14)",
@@ -507,9 +507,9 @@ export function GameShell({
       >
         {/* LED strip — sibling of the glowing console on /search */}
         <div className="mb-2 flex items-center gap-1.5 px-1">
-          <span className="h-1 w-6 rounded-full bg-[#3b82f6]" />
-          <span className="h-1 w-2 rounded-full bg-white/25" />
-          <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-600">
+          <span className="h-1 w-6 rounded-full bg-azure" />
+          <span className="h-1 w-2 rounded-full bg-hair/25" />
+          <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.2em] text-deep">
             zfun · {slug}
           </span>
         </div>
@@ -523,13 +523,13 @@ export function GameShell({
                 e.preventDefault();
                 onStart();
               }}
-              className="absolute inset-0 z-10 flex cursor-pointer flex-col items-center justify-center gap-3 bg-[#050505]/80 backdrop-blur-[2px]"
+              className="absolute inset-0 z-10 flex cursor-pointer flex-col items-center justify-center gap-3 bg-canvas/80 backdrop-blur-[2px]"
             >
-              <span className="zs-pixel text-center text-sm text-zinc-100 sm:text-base">
+              <span className="zs-pixel text-center text-sm text-body sm:text-base">
                 {status === "ready" ? title : status === "won" ? "YOU WIN" : "GAME OVER"}
               </span>
               {overlayNote ? (
-                <span className="font-mono text-[11px] text-zinc-400">{overlayNote}</span>
+                <span className="font-mono text-[11px] text-dim">{overlayNote}</span>
               ) : null}
               <span className="zs-pixel animate-pulse text-[8px] text-[var(--rc-brand)]">
                 TAP OR PRESS SPACE
@@ -545,7 +545,7 @@ export function GameShell({
       ) : null}
 
       {/* Controls hint */}
-      <p className="pb-2 text-center font-mono text-[11px] text-zinc-500">{hint}</p>
+      <p className="pb-2 text-center font-mono text-[11px] text-faint">{hint}</p>
     </div>
   );
 }
@@ -557,7 +557,7 @@ export function BackToLobby({ onClose }: { onClose: () => void }) {
       type="button"
       onClick={onClose}
       aria-label="Back to all games"
-      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[12px] text-zinc-400 transition-colors hover:border-white/30 hover:text-zinc-200"
+      className="inline-flex items-center gap-1.5 rounded-full border border-hair/10 bg-hair/[0.03] px-3 py-1.5 font-mono text-[12px] text-dim transition-colors hover:border-hair/30 hover:text-body"
     >
       ← all games
     </button>
