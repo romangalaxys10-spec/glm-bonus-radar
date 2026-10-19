@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
+  buildAssistMessages,
   completeAssist,
+  llmLadderStream,
   newConversationToken,
   sanitizeHistory,
   MAX_STORED,
@@ -124,7 +126,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { messages?: unknown; token?: unknown };
+  let body: { messages?: unknown; token?: unknown; stream?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -145,6 +147,65 @@ export async function POST(req: NextRequest) {
       : null;
 
   try {
+    /* ---------------------------- streaming mode ---------------------------
+     * Same SSE protocol as /api/agent/chat: words land as the ladder rung
+     * generates them, and the conversation row is written once, on done. */
+    if (body.stream === true) {
+      const encoder = new TextEncoder();
+      const sse = (obj: unknown) => encoder.encode(`data: ${JSON.stringify(obj)}\n\n`);
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          try {
+            const messages = await buildAssistMessages(history);
+            controller.enqueue(sse({ type: "start" }));
+            const gen = llmLadderStream(messages);
+            let full = "";
+            let next = await gen.next();
+            while (!next.done) {
+              full += next.value;
+              controller.enqueue(sse({ type: "delta", text: next.value }));
+              next = await gen.next();
+            }
+            const meta = next.value;
+            if (!full.trim()) throw new Error("Empty completion");
+
+            const finalText = meta.truncated
+              ? `${full}\n\n_(reply cut short by a connection hiccup — send again to continue)_`
+              : full;
+            const savedToken = await persistAssistReply(history, finalText, requestedToken);
+            controller.enqueue(
+              sse({
+                type: "done",
+                reply: finalText,
+                token: savedToken,
+                via: meta.via,
+                truncated: meta.truncated,
+              }),
+            );
+          } catch (err) {
+            console.error("[assist] stream failed:", err);
+            controller.enqueue(
+              sse({
+                type: "error",
+                error:
+                  "Z-Assist hit a snag reaching the model. Please try again in a moment — or browse the docs at docs.z.ai meanwhile.",
+              }),
+            );
+          } finally {
+            controller.close();
+          }
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache, no-transform",
+          connection: "keep-alive",
+          "x-accel-buffering": "no",
+        },
+      });
+    }
+
     const reply = await completeAssist(history);
 
     // Persist/extend the conversation, issuing a resume token when needed.
@@ -164,15 +225,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!conversationToken) {
-      conversationToken = newConversationToken();
-      const firstUser = history.find((m) => m.role === "user")?.content ?? "chat";
-      await db.assistConversation.create({
-        data: {
-          token: conversationToken,
-          title: firstUser.slice(0, 60),
-          messages: JSON.stringify([...history.slice(-MAX_STORED), { role: "assistant", content: reply }]),
-        },
-      });
+      conversationToken = await persistAssistReply(history, reply, null);
     }
 
     return NextResponse.json({ reply, token: conversationToken });
@@ -186,4 +239,35 @@ export async function POST(req: NextRequest) {
       { status: 502 },
     );
   }
+}
+
+/** Stores the thread (extending the caller's token when valid), returns its token. */
+async function persistAssistReply(
+  history: IncomingMessage[],
+  reply: string,
+  requestedToken: string | null,
+): Promise<string> {
+  let conversationToken = requestedToken;
+  if (conversationToken) {
+    const existing = await db.assistConversation.findUnique({ where: { token: conversationToken } });
+    if (existing) {
+      const merged = [...history, { role: "assistant" as const, content: reply }].slice(-MAX_STORED);
+      await db.assistConversation.update({
+        where: { token: conversationToken },
+        data: { messages: JSON.stringify(merged) },
+      });
+      return conversationToken;
+    }
+    conversationToken = null; // unknown token — issue a fresh one
+  }
+  conversationToken = newConversationToken();
+  const firstUser = history.find((m) => m.role === "user")?.content ?? "chat";
+  await db.assistConversation.create({
+    data: {
+      token: conversationToken,
+      title: firstUser.slice(0, 60),
+      messages: JSON.stringify([...history.slice(-MAX_STORED), { role: "assistant", content: reply }]),
+    },
+  });
+  return conversationToken;
 }

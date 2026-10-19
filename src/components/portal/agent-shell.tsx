@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { parseAssistReply } from "@/lib/assist-blocks";
+import { consumeChatStream, isChatStream, stripStreamingFence } from "@/lib/chat-stream";
 import {
   CheckIcon,
   ChatMsg,
@@ -121,6 +122,7 @@ export function ChatShell({
   const [model, setModel] = useState<Model>("assist");
   const [drawer, setDrawer] = useState(false);
   const [reveal, setReveal] = useState<{ id: string; shown: number } | null>(null);
+  const [streamingId, setStreamingId] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
 
@@ -228,11 +230,13 @@ export function ChatShell({
     return () => window.clearInterval(timer);
   }, [reveal?.id, messages, reveal]);
 
-  /* Keep the thread pinned to the bottom while it grows. */
+  /* Keep the thread pinned to the bottom while it grows (new messages,
+     typewriter ticks and — crucially — streaming deltas all re-pin it). */
+  const lastLen = messages.length > 0 ? messages[messages.length - 1].content.length : 0;
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length, reveal?.shown, sending]);
+  }, [messages.length, lastLen, reveal?.shown, sending]);
 
   const newChat = useCallback(() => {
     abortRef.current?.abort();
@@ -265,6 +269,42 @@ export function ChatShell({
     [user.token, newChat],
   );
 
+  /** Attaches the server-issued conversation id (new thread) or refreshes the
+   *  sidebar row (existing thread) — shared by both reply paths. */
+  const adoptConversation = useCallback(
+    (id: unknown, title: string | null, count: number) => {
+      const newId = typeof id === "string" && id ? id : null;
+      if (!newId) return;
+      if (!activeIdRef.current) {
+        setActiveId(newId);
+        try {
+          localStorage.setItem(CONV_KEY, newId);
+        } catch {
+          /* ignore */
+        }
+        setConvs((prev) =>
+          [
+            {
+              id: newId,
+              title,
+              count,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            ...(prev ?? []).filter((c) => c.id !== newId),
+          ].slice(0, 60),
+        );
+      } else {
+        setConvs((prev) =>
+          (prev ?? []).map((c) =>
+            c.id === newId ? { ...c, updatedAt: new Date().toISOString(), title: title ?? c.title } : c,
+          ),
+        );
+      }
+    },
+    [],
+  );
+
   const send = useCallback(async () => {
     const text = input.trim();
     if (!text || sending || threadBusy) return;
@@ -277,15 +317,21 @@ export function ChatShell({
     const ctl = new AbortController();
     abortRef.current = ctl;
 
+    /* Tracks the live-growing bubble so the thinking dots yield to it and
+       the trailing partial ```blocks fence is never flashed raw. */
+    let replyId: string | null = null;
+    let raw = "";
+    let streamError: string | null = null;
+
     try {
       const res = await fetch("/api/agent/chat", {
         method: "POST",
         signal: ctl.signal,
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token: user.token, id: activeId, model, messages: wire }),
+        body: JSON.stringify({ token: user.token, id: activeId, model, messages: wire, stream: true }),
       });
-      const data = await res.json();
       if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
         if (res.status === 404 && String(data.error ?? "").includes("Unknown token")) {
           // Dead identity (redeploy reset the DB) — heal instead of dead-ending.
           onInvalidToken(user);
@@ -294,43 +340,60 @@ export function ChatShell({
         throw new Error(String(data.error ?? "Z-Assist could not reply."));
       }
 
-      const parsed = parseAssistReply(String(data.reply ?? ""));
-      const replyMsg: ChatMsg = {
-        id: uid(),
-        role: "assistant",
-        content: parsed.text,
-        ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
-      };
-      setMessages((prev) => [...prev, replyMsg]);
-      if (parsed.text) setReveal({ id: replyMsg.id, shown: 0 });
+      if (!isChatStream(res)) {
+        /* Server answered the old blocking-JSON way — parse once and reveal. */
+        const data = (await res.json()) as { reply?: string; id?: unknown; title?: unknown };
+        const parsed = parseAssistReply(String(data.reply ?? ""));
+        const msg: ChatMsg = {
+          id: uid(),
+          role: "assistant",
+          content: parsed.text,
+          ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
+        };
+        setMessages((prev) => [...prev, msg]);
+        if (parsed.text) setReveal({ id: msg.id, shown: 0 });
+        adoptConversation(
+          typeof data.id === "string" ? data.id : null,
+          typeof data.title === "string" ? data.title : null,
+          wire.length + 1,
+        );
+      } else {
+        replyId = uid();
+        setMessages((prev) => [...prev, { id: replyId as string, role: "assistant", content: "" }]);
+        setStreamingId(replyId);
 
-      const newId = typeof data.id === "string" ? data.id : null;
-      const title = typeof data.title === "string" ? data.title : null;
-      if (newId && !activeIdRef.current) {
-        setActiveId(newId);
-        try {
-          localStorage.setItem(CONV_KEY, newId);
-        } catch {
-          /* ignore */
-        }
-        setConvs((prev) =>
-          [
-            {
-              id: newId,
-              title,
-              count: wire.length + 1,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            ...(prev ?? []).filter((c) => c.id !== newId),
-          ].slice(0, 60),
-        );
-      } else if (newId) {
-        setConvs((prev) =>
-          (prev ?? []).map((c) =>
-            c.id === newId ? { ...c, updatedAt: new Date().toISOString(), title: title ?? c.title } : c,
-          ),
-        );
+        await consumeChatStream(res, {
+          onDelta: (piece) => {
+            raw += piece;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === replyId ? { ...m, content: raw } : m)),
+            );
+          },
+          onDone: (d) => {
+            const finalText = typeof d.text === "string" && d.text ? d.text : raw;
+            const parsed = parseAssistReply(finalText);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === replyId
+                  ? {
+                      ...m,
+                      content: parsed.text,
+                      ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
+                    }
+                  : m,
+              ),
+            );
+            adoptConversation(
+              typeof d.id === "string" ? d.id : null,
+              typeof d.title === "string" ? d.title : null,
+              wire.length + 1,
+            );
+          },
+          onError: (msg) => {
+            streamError = msg;
+          },
+        });
+        if (streamError) throw new Error(streamError);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -341,9 +404,10 @@ export function ChatShell({
       ]);
     } finally {
       setSending(false);
+      setStreamingId(null);
       abortRef.current = null;
     }
-  }, [input, sending, threadBusy, messages, user, activeId, model, onInvalidToken]);
+  }, [input, sending, threadBusy, messages, user, activeId, model, onInvalidToken, adoptConversation]);
 
   const switchModel = (m: Model) => {
     setModel(m);
@@ -473,14 +537,24 @@ export function ChatShell({
             <EmptyState name={user.name} onPick={(q) => { setInput(q); composerRef.current?.focus(); }} />
           ) : (
             <div className="mx-auto max-w-3xl space-y-5 px-3 py-5 sm:px-5">
-              {messages.map((m) => (
-                <MessageBubble
-                  key={m.id}
-                  msg={m}
-                  revealText={reveal?.id === m.id ? m.content.slice(0, reveal.shown) : null}
-                />
-              ))}
-              {sending && <ThinkingBubble />}
+              {messages.map((m) =>
+                /* The freshly-opened stream bubble stays invisible until the
+                   first words arrive — the thinking dots cover that gap. */
+                streamingId === m.id && m.content.length === 0 ? null : (
+                  <MessageBubble
+                    key={m.id}
+                    msg={m}
+                    revealText={
+                      streamingId === m.id
+                        ? stripStreamingFence(m.content)
+                        : reveal?.id === m.id
+                          ? m.content.slice(0, reveal.shown)
+                          : null
+                    }
+                  />
+                ),
+              )}
+              {sending && (!streamingId || lastLen === 0) && <ThinkingBubble />}
             </div>
           )}
         </div>

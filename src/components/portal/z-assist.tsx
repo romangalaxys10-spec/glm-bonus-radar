@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { useFreshAnnouncements } from "@/lib/use-fresh-announcements";
 import { parseAssistReply, type AssistBlock } from "@/lib/assist-blocks";
+import { consumeChatStream, isChatStream, stripStreamingFence } from "@/lib/chat-stream";
 import { AssistBlocks } from "@/components/portal/assist-blocks";
 
 /**
@@ -489,6 +490,7 @@ export function ZAssist() {
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [reveal, setReveal] = useState<{ id: string; len: number } | null>(null);
+  const [streamingId, setStreamingId] = useState<string | null>(null);
   const [buzz, setBuzz] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -678,33 +680,76 @@ export function ZAssist() {
         const res = await fetch("/api/assist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: historyForApi, token }),
+          body: JSON.stringify({ messages: historyForApi, token, stream: true }),
         });
-        const data = (await res.json().catch(() => ({}))) as {
-          reply?: string;
-          token?: string;
-          error?: string;
-        };
-        if (!res.ok || !data.reply) {
-          throw new Error(data.error || "Z-Assist could not reach the model. Please try again.");
+        if (!res.ok || !isChatStream(res)) {
+          /* Blocking-JSON path (older deploy or a pre-stream error). */
+          const data = (await res.json().catch(() => ({}))) as {
+            reply?: string;
+            token?: string;
+            error?: string;
+          };
+          if (!res.ok || !data.reply) {
+            throw new Error(data.error || "Z-Assist could not reach the model. Please try again.");
+          }
+          if (data.token) {
+            setToken(data.token);
+            saveToken(data.token);
+            rememberToken(data.token);
+          }
+          const id = uid();
+          const parsed = parseAssistReply(data.reply);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id,
+              role: "assistant",
+              content: parsed.text,
+              ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
+            },
+          ]);
+          setReveal({ id, len: 0 });
+        } else {
+          /* Streaming path — words land as the model generates them. */
+          const replyId = uid();
+          let raw = "";
+          let streamError: string | null = null;
+          setMessages((prev) => [...prev, { id: replyId, role: "assistant", content: "" }]);
+          setStreamingId(replyId);
+          await consumeChatStream(res, {
+            onDelta: (piece) => {
+              raw += piece;
+              setMessages((prev) =>
+                prev.map((m) => (m.id === replyId ? { ...m, content: raw } : m)),
+              );
+            },
+            onDone: (d) => {
+              const savedToken = typeof d.token === "string" && d.token ? d.token : null;
+              if (savedToken) {
+                setToken(savedToken);
+                saveToken(savedToken);
+                rememberToken(savedToken);
+              }
+              const finalText = typeof d.reply === "string" && d.reply ? d.reply : raw;
+              const parsed = parseAssistReply(finalText);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === replyId
+                    ? {
+                        ...m,
+                        content: parsed.text,
+                        ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
+                      }
+                    : m,
+                ),
+              );
+            },
+            onError: (msg) => {
+              streamError = msg;
+            },
+          });
+          if (streamError) throw new Error(streamError);
         }
-        if (data.token) {
-          setToken(data.token);
-          saveToken(data.token);
-          rememberToken(data.token);
-        }
-        const id = uid();
-        const parsed = parseAssistReply(data.reply);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id,
-            role: "assistant",
-            content: parsed.text,
-            ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
-          },
-        ]);
-        setReveal({ id, len: 0 });
       } catch (err) {
         setMessages((prev) => [
           ...prev,
@@ -720,6 +765,7 @@ export function ZAssist() {
         ]);
       } finally {
         setThinking(false);
+        setStreamingId(null);
         setBuzz(true);
         setTimeout(() => setBuzz(false), 500);
       }
@@ -949,12 +995,17 @@ export function ZAssist() {
   }, []);
 
   const showSuggestions = messages.length <= 1;
+  const lastLen = messages.length > 0 ? messages[messages.length - 1].content.length : 0;
   const visible = useMemo(
     () =>
-      messages.map((m) =>
-        reveal && reveal.id === m.id ? { ...m, content: m.content.slice(0, reveal.len) } : m,
-      ),
-    [messages, reveal],
+      messages
+        .filter((m) => !(streamingId === m.id && m.content.length === 0))
+        .map((m) => {
+          if (reveal && reveal.id === m.id) return { ...m, content: m.content.slice(0, reveal.len) };
+          if (streamingId === m.id) return { ...m, content: stripStreamingFence(m.content) };
+          return m;
+        }),
+    [messages, reveal, streamingId],
   );
 
   if (!open) {
@@ -1178,7 +1229,7 @@ export function ZAssist() {
           ),
         )}
 
-        {thinking && (
+        {thinking && (!streamingId || lastLen === 0) && (
           <div className="max-w-[70%] self-start rounded-2xl rounded-bl-md border border-[var(--rc-border)] bg-[var(--rc-surface)] px-4 py-3.5">
             <div className="flex gap-1.5">
               <span className="zassist-dot h-1.5 w-1.5 rounded-full bg-[var(--rc-accent)]" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { parseAssistReply, type AssistBlock } from "@/lib/assist-blocks";
 import { AssistBlocks } from "@/components/portal/assist-blocks";
 
@@ -242,6 +242,12 @@ export function MessageBubble({ msg, revealText }: { msg: ChatMsg; revealText?: 
 /* ------------------------- thinking + empty state ------------------------- */
 
 export function ThinkingBubble() {
+  /* Seconds counter — a visible clock turns "is it stuck?" into "it's working". */
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setSecs((s) => s + 1), 1000);
+    return () => window.clearInterval(t);
+  }, []);
   return (
     <div className="flex gap-2.5" aria-live="polite" aria-label="Z-Assist is thinking">
       <ZAvatar />
@@ -254,7 +260,7 @@ export function ThinkingBubble() {
           />
         ))}
         <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">
-          thinking
+          thinking{secs >= 3 ? ` · ${secs}s` : ""}
         </span>
       </div>
     </div>
