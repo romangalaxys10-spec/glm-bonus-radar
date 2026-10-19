@@ -235,7 +235,7 @@ export default function Home() {
           <SectionHeader
             eyebrow="pay as you go"
             title="API token pricing"
-            blurb="Prices per 1M tokens in USD. The GLM-5.3-Flash 50% promotion is live right now — input, cached input and output are all halved until 2026-09-09 24:00 SGT."
+            blurb="Prices per 1M tokens in USD. Limited-time API promos are folded in the moment the official pricing page publishes them — the hourly AI sync keeps this table honest around the clock."
           />
           <PricingSection />
         </section>

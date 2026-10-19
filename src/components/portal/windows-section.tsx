@@ -9,6 +9,7 @@ import {
   formatLocalClock,
   formatSgtNow,
   goldenWindow,
+  isGoldenWindowDef,
   localMidnight,
   localUtcOffsetLabel,
   metricsWindowId,
@@ -206,7 +207,9 @@ export function LiveTable() {
               {/* Window identity + purpose, stacked — the description gets a
                   real home instead of collapsing into a skinny column. */}
               <td className={cellBase}>
-                <WindowChip colorVar={s.def.colorVar}>{metricsWindowId(s.def.id)}</WindowChip>
+                <WindowChip colorVar={s.def.colorVar} ended={s.ended}>
+                  {metricsWindowId(s.def.id)}
+                </WindowChip>
                 <p
                   className="mt-1 max-w-[380px] text-[12.5px] leading-snug text-[var(--rc-text-dim)] line-clamp-2"
                   title={s.def.description}
@@ -285,13 +288,27 @@ export function TimelineSection() {
   const now = useNow();
   const windows = useWindows();
 
+  /* The bars paint nothing for ended windows — so the legend must not imply
+     otherwise. Once the clock is live, each chip learns whether its window is
+     over and dims accordingly (SSR/first paint keeps the plain chips, which
+     keeps hydration markup identical). */
+  const endedIds = useMemo(() => {
+    if (now == null) return null;
+    const ended = new Set<string>();
+    for (const s of evaluateAll(now, windows)) if (s.ended) ended.add(s.def.id);
+    return ended;
+  }, [now, windows]);
+  /* Caption copy: mention the ended promos only when nothing but peak remains. */
+  const anyFlashLive =
+    endedIds == null || windows.some((def) => def.id !== "peak" && !endedIds.has(def.id));
+
   return (
     <div className="card-surface grid gap-5 rounded-xl p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-display text-lg font-semibold">Next 24 hours, visualised</h3>
         <div className="flex flex-wrap items-center gap-4">
           {windows.map((def) => (
-            <WindowChip key={def.id} colorVar={def.colorVar}>
+            <WindowChip key={def.id} colorVar={def.colorVar} ended={endedIds?.has(def.id) ?? false}>
               {metricsWindowId(def.id)}
             </WindowChip>
           ))}
@@ -300,8 +317,10 @@ export function TimelineSection() {
       <TimeBar now={now} midnightOf={sgtMidnight} label={SGT_TZ_LABEL} windows={windows} />
       <TimeBar now={now} midnightOf={localMidnight} label={`your local time · ${localUtcOffsetLabel()}`} windows={windows} />
       <p className="text-[13px] text-[var(--rc-text-dim)]">
-        Bars start at midnight in each timezone. The peak surcharge only runs Mon–Fri; the flash campaign paints the
-        whole night. Wherever you are, the night bar is when the stack is deepest.
+        Bars start at midnight in each timezone. The peak surcharge only runs Mon–Fri
+        {anyFlashLive
+          ? "; the flash campaign paints the whole night. Wherever you are, the night bar is when the stack is deepest."
+          : ". The flash promos have ended — until the docs announce the next bonus window, the peak block is the only coloring on these bars. Wherever you are, the night bar is still when credits last longest."}
       </p>
     </div>
   );
@@ -327,6 +346,14 @@ function TimeBar({
     [ready, barStart, windows],
   );
   const pct = (ms: number) => `${(((ms - barStart) / DAY) * 100).toFixed(2)}%`;
+  /* Segment extent: width must be the SPAN (end% − start%), not the end's
+     absolute position — using pct(end) painted every segment from its start
+     all the way to the bar's right edge. */
+  const segBox = (startMs: number, endMs: number) => {
+    const from = Math.max(startMs, barStart);
+    const to = Math.min(endMs, barStart + DAY);
+    return { left: pct(from), width: `${(((to - from) / DAY) * 100).toFixed(2)}%` };
+  };
   const nowPct = now == null ? null : Math.min(100, Math.max(0, ((now - barStart) / DAY) * 100));
 
   return (
@@ -353,8 +380,7 @@ function TimeBar({
               key={`${seg.def.id}-${i}`}
               className="absolute inset-y-0 opacity-55"
               style={{
-                left: pct(Math.max(seg.startMs, barStart)),
-                width: pct(Math.min(seg.endMs, barStart + DAY)),
+                ...segBox(seg.startMs, seg.endMs),
                 background: `var(${seg.def.colorVar})`,
               }}
               title={`${seg.def.name}: ${new Date(seg.startMs).toLocaleTimeString()} → ${new Date(seg.endMs).toLocaleTimeString()}`}
@@ -392,6 +418,16 @@ export function GoldenStrip() {
   const open = gold.status === "open";
   const ended = gold.status === "ended";
 
+  /* Pull the campaign's end date from the synced definition (falls back to a
+     generic sentence if the def ever disappears) — a hardcoded date here went
+     stale once the docs extended the campaign. */
+  const flashDef =
+    windows.find(isGoldenWindowDef) ??
+    windows.find((d) => /flash/i.test(d.name) && /campaign/i.test(d.name));
+  const endedCopy = flashDef?.eventEndText
+    ? `The ${flashDef.name} ended on ${flashDef.eventEndText}. Off-peak credit rates still apply every night and all weekend.`
+    : "The GLM-5.3-Flash Usage Campaign has ended. Off-peak credit rates still apply every night and all weekend.";
+
   return (
     <aside
       className="relative overflow-hidden rounded-xl border p-5"
@@ -413,7 +449,7 @@ export function GoldenStrip() {
           </div>
           <p className="mt-1 max-w-2xl text-sm text-[var(--rc-text-dim)]">
             {ended
-              ? "The GLM-5.3-Flash Usage Campaign ended on 2026-09-21. Off-peak credit rates still apply every night and all weekend."
+              ? endedCopy
               : open
                 ? "Until 09:00 SGT: unlimited GLM-5.3-Flash in ZCode, doubled quota in other agents, and the whole night bills at the 50% off-peak credit rate."
                 : "Campaign nights run 23:00–09:00 SGT — unlimited Flash in ZCode plus off-peak credit rates stack all night long."}
