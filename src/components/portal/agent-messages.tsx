@@ -18,12 +18,25 @@ export interface ChatMsg {
   /** Generative-UI blocks rendered under the text (OpenIntelligentUI). */
   blocks?: AssistBlock[];
   error?: boolean;
+  /** Staff-authored reply (staff mode) — renders with a Staff chip. */
+  staff?: boolean;
+  /** Verification badge: verified | flagged | skip (anti-hallucination gate). */
+  verify?: { status: string; issues?: string[] };
+  /** Runtime-only: the user question this reply answers (for feedback). */
+  questionText?: string;
 }
 
 export const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 /** Strips block fences from stored/raw assistant content, keeping validated blocks. */
-export function toChatMsg(m: { id?: string; role: "user" | "assistant"; content: string; error?: boolean }): ChatMsg {
+export function toChatMsg(m: {
+  id?: string;
+  role: "user" | "assistant";
+  content: string;
+  error?: boolean;
+  staff?: boolean;
+  verify?: { status: string; issues?: string[] };
+}): ChatMsg {
   if (m.role !== "assistant") {
     return { id: m.id ?? uid(), role: m.role, content: m.content, error: m.error };
   }
@@ -34,6 +47,10 @@ export function toChatMsg(m: { id?: string; role: "user" | "assistant"; content:
     content: parsed.text,
     ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
     error: m.error,
+    ...(m.staff === true ? { staff: true } : {}),
+    ...(m.verify && typeof m.verify === "object" && m.verify.status
+      ? { verify: m.verify }
+      : {}),
   };
 }
 
@@ -174,20 +191,157 @@ export function CheckIcon({ className }: { className?: string }) {
   );
 }
 
-function ZAvatar() {
+function ZAvatar({ staff }: { staff?: boolean }) {
   return (
     <div
       aria-hidden
-      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-azure/40 bg-azure/15 font-mono text-[13px] font-semibold text-azure2"
+      className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border font-mono text-[13px] font-semibold ${
+        staff
+          ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
+          : "border-azure/40 bg-azure/15 text-azure2"
+      }`}
     >
-      Z
+      {staff ? "S" : "Z"}
     </div>
+  );
+}
+
+/* ------------------------------ trust badges ------------------------------- */
+
+function ShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />
+      <path d="M9.5 12l2 2 3.5-4" />
+    </svg>
+  );
+}
+
+function AlertIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="M12 3l9 16H3z" />
+      <path d="M12 10v4" />
+      <path d="M12 17.5h.01" />
+    </svg>
+  );
+}
+
+function VerifyBadge({ verify }: { verify?: { status: string; issues?: string[] } }) {
+  if (!verify || verify.status === "skip") return null;
+  if (verify.status === "verified") {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-emerald-300"
+        title="Every claim was audited against the official docs before this reply shipped"
+      >
+        <ShieldIcon className="h-3 w-3" />
+        verified · official docs
+      </span>
+    );
+  }
+  const why = verify.issues?.length ? `\n${verify.issues.map((i) => `• ${i}`).join("\n")}` : "";
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-amber-300"
+      title={`Could not fully verify this against the official docs — double-check at docs.z.ai${why}`}
+    >
+      <AlertIcon className="h-3 w-3" />
+      unverified · check docs.z.ai
+    </span>
+  );
+}
+
+/* ------------------------------- feedback ---------------------------------- */
+
+function ThumbIcon({ up, className }: { up: boolean; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={up ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      {up ? (
+        <path d="M7 11v9M7 11l3.5-6.5c.3-.6.9-1 1.6-1 1 0 1.9.8 1.9 1.9V9h4.2c1.2 0 2.1 1.1 1.9 2.3l-1 6c-.2.9-1 1.7-2 1.7H7" />
+      ) : (
+        <path d="M17 13V4M17 13l-3.5 6.5c-.3.6-.9 1-1.6 1-1 0-1.9-.8-1.9-1.9V15H5.8c-1.2 0-2.1-1.1-1.9-2.3l1-6c.2-.9 1-1.7 2-1.7H17" />
+      )}
+    </svg>
+  );
+}
+
+function FeedbackButtons({
+  msg,
+  askToken,
+}: {
+  msg: ChatMsg;
+  askToken: () => string | null;
+}) {
+  const [vote, setVote] = useState<"up" | "down" | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const send = async (rating: "up" | "down") => {
+    if (vote || busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/agent/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          token: askToken(),
+          rating,
+          question: msg.questionText ?? "",
+          answer: msg.content,
+          verdict: msg.verify?.status ?? null,
+        }),
+      });
+      if (res.ok) setVote(rating);
+    } catch {
+      /* best-effort */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      <button
+        type="button"
+        onClick={() => void send("up")}
+        disabled={busy || vote !== null}
+        aria-label="Helpful reply"
+        className={`rounded-md p-1 transition-colors hover:bg-hair/5 ${vote === "up" ? "text-emerald-300" : "text-faint hover:text-azure2"}`}
+      >
+        <ThumbIcon up className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => void send("down")}
+        disabled={busy || vote !== null}
+        aria-label="Not helpful — sends this to the improvement queue"
+        className={`rounded-md p-1 transition-colors hover:bg-hair/5 ${vote === "down" ? "text-alert" : "text-faint hover:text-azure2"}`}
+      >
+        <ThumbIcon up={false} className="h-3.5 w-3.5" />
+      </button>
+      {vote === "up" && <span className="font-mono text-[9.5px] text-faint">thanks</span>}
+      {vote === "down" && (
+        <span className="font-mono text-[9.5px] text-faint" title="Queued for staff review — the agent learns from this">
+          queued for review
+        </span>
+      )}
+    </span>
   );
 }
 
 /* -------------------------------- bubbles --------------------------------- */
 
-export function MessageBubble({ msg, revealText }: { msg: ChatMsg; revealText?: string | null }) {
+export function MessageBubble({
+  msg,
+  revealText,
+  verifying,
+  askToken,
+}: {
+  msg: ChatMsg;
+  revealText?: string | null;
+  verifying?: boolean;
+  askToken?: () => string | null;
+}) {
   const [copied, setCopied] = useState(false);
   const body = revealText ?? msg.content;
 
@@ -213,8 +367,24 @@ export function MessageBubble({ msg, revealText }: { msg: ChatMsg; revealText?: 
 
   return (
     <div className="group flex gap-2.5">
-      <ZAvatar />
+      <ZAvatar staff={msg.staff} />
       <div className={`min-w-0 max-w-[calc(100%-2.75rem)] flex-1 ${msg.error ? "text-alert" : "text-body"}`}>
+        {(msg.staff || msg.verify?.status === "verified" || msg.verify?.status === "flagged") && (
+          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+            {msg.staff && (
+              <span className="inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-emerald-300">
+                staff reply
+              </span>
+            )}
+            {!msg.staff && <VerifyBadge verify={msg.verify} />}
+          </div>
+        )}
+        {verifying && !revealText && (
+          <p className="mb-1 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-faint" aria-live="polite">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
+            verifying against official docs…
+          </p>
+        )}
         <div className="space-y-1.5 text-[13.5px] leading-relaxed">
           {body.split(/\n{2,}/).map((para, i) => (
             <div key={i}>{renderMarkdown(para)}</div>
@@ -222,7 +392,7 @@ export function MessageBubble({ msg, revealText }: { msg: ChatMsg; revealText?: 
         </div>
         {msg.blocks && msg.blocks.length > 0 && <AssistBlocks blocks={msg.blocks} />}
         {!revealText && !msg.error && msg.content && (
-          <div className="mt-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <div className="mt-1.5 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
             <button
               type="button"
               onClick={copy}
@@ -232,6 +402,9 @@ export function MessageBubble({ msg, revealText }: { msg: ChatMsg; revealText?: 
               {copied ? <CheckIcon className="h-3 w-3" /> : <CopyIcon className="h-3 w-3" />}
               {copied ? "copied" : "copy"}
             </button>
+            {!msg.staff && askToken && (
+              <FeedbackButtons msg={msg} askToken={askToken} />
+            )}
           </div>
         )}
       </div>
@@ -310,7 +483,7 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (q: string)
         ))}
       </div>
       <p className="mt-5 font-mono text-[10px] leading-relaxed text-deep">
-        grounded in docs.z.ai · hourly doc sync · community portal (not official z.ai support)
+        grounded in docs.z.ai · anti-hallucination verified · humanized tone · self-learning
       </p>
     </div>
   );

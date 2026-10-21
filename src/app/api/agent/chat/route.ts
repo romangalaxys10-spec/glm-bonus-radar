@@ -10,7 +10,11 @@ import {
   sanitizeHistory,
   MAX_STORED,
   TOKEN_REGEX,
+  type IncomingMessage,
 } from "@/lib/assist-core";
+import { verifyAssistReply } from "@/lib/assist-verify";
+import { humanize } from "@/lib/assist-humanize";
+import { captureLearnEntry, looksLikeRefusal } from "@/lib/assist-learn";
 import { authUser, normalizeUserToken, pruneConversations } from "@/lib/assist-users";
 
 export const runtime = "nodejs";
@@ -121,10 +125,63 @@ export async function POST(req: NextRequest) {
             const meta = next.value;
             if (!full.trim()) throw new Error("Empty completion");
 
-            const finalText = meta.truncated
+            let finalText = meta.truncated
               ? `${full}\n\n_(reply cut short by a connection hiccup — send again to continue)_`
               : full;
-            const saved = await persistReply(userToken, body, history, finalText, model);
+
+            /* Trust pipeline (assist model only): anti-hallucination audit →
+               one grounded regeneration when claims fail → humanizer tone
+               pass. The client shows a "verifying" shimmer between the
+               {type:"verify"} event and {type:"done"}. */
+            let verify: { status: string; issues?: string[] } | undefined;
+            let refined = false;
+            if (model === "assist" && !meta.truncated) {
+              controller.enqueue(sse({ type: "verify" }));
+              const question = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
+              const result = await verifyAssistReply({
+                question,
+                answer: full,
+                userText: question,
+                regenerate: async (issues) => {
+                  const corrective: IncomingMessage = {
+                    role: "user",
+                    content: `[internal audit] Your draft reply violated the grounding contract: ${issues.join("; ")}. Regenerate the answer using ONLY the official docs material in this conversation. If the docs do not cover a claim, drop the claim or say the docs don't cover it. Keep everything that was correct.`,
+                  };
+                  const retryMessages = await buildAssistMessages([...history, corrective]);
+                  const gen2 = llmLadderStream(retryMessages);
+                  let retry = "";
+                  let n2 = await gen2.next();
+                  while (!n2.done) {
+                    retry += n2.value;
+                    n2 = await gen2.next();
+                  }
+                  return retry.trim();
+                },
+              });
+              refined = result.refined;
+              if (result.refined) finalText = result.text;
+              const humanized = humanize(finalText).trim();
+              if (humanized) finalText = humanized;
+              verify = { status: result.status };
+              if (result.status === "flagged") {
+                verify.issues = result.issues;
+                void captureLearnEntry({
+                  question,
+                  answer: finalText,
+                  origin: "auto",
+                  note: `verification flagged: ${result.issues.join("; ")}`,
+                });
+              } else if (looksLikeRefusal(finalText)) {
+                void captureLearnEntry({
+                  question,
+                  answer: finalText,
+                  origin: "auto",
+                  note: "engine could not answer from the docs",
+                });
+              }
+            }
+
+            const saved = await persistReply(userToken, body, history, finalText, model, verify);
             controller.enqueue(
               sse({
                 type: "done",
@@ -133,6 +190,7 @@ export async function POST(req: NextRequest) {
                 model,
                 via: meta.via,
                 truncated: meta.truncated,
+                ...(verify ? { verify, refined } : {}),
               }),
             );
           } catch (err) {
@@ -171,6 +229,7 @@ async function persistReply(
   history: IncomingMessageLike[],
   reply: string,
   model: "assist" | "code",
+  verify?: { status: string; issues?: string[] },
 ): Promise<{ id: string; title: string | null }> {
   let conversationToken =
     typeof body.id === "string" && TOKEN_REGEX.test(body.id.trim().toUpperCase())
@@ -186,7 +245,12 @@ async function persistReply(
     }
   }
 
-  const merged = [...history, { role: "assistant" as const, content: reply }].slice(-MAX_STORED);
+  const assistantMsg: IncomingMessageLike & { verify?: { status: string; issues?: string[] } } = {
+    role: "assistant",
+    content: reply,
+    ...(verify ? { verify } : {}),
+  };
+  const merged = [...history, assistantMsg].slice(-MAX_STORED);
 
   if (conversationToken) {
     await db.assistConversation.update({

@@ -61,6 +61,60 @@ model SiteData {
   updatedAt DateTime @updatedAt
 }
 
+/// Z-Assist trust layer — per-reply feedback (thumbs up/down) captured at
+/// /agent. A thumbs-down (or a flagged verification verdict) seeds the
+/// self-learning queue. Additive table: never touches existing chats.
+model AssistFeedback {
+  id                String   @id @default(cuid())
+  /// Owning chat user's ZA- token (null = anonymous surface).
+  userToken         String?
+  conversationToken String?
+  /// "up" | "down"
+  rating            String
+  /// The user question + the assistant answer being rated (trimmed).
+  question          String
+  answer            String
+  /// Optional free-text reason from the user.
+  reason            String?
+  /// Verification verdict at reply time: "verified" | "flagged" | "skip".
+  verdict           String?
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([rating])
+}
+
+/// Z-Assist self-learning store. When the engine can't ground an answer or a
+/// user downvotes one, the question lands here as "pending"; staff review it
+/// at /agent (staff mode) and approve a docs-cited answer. Approved entries
+/// are injected into future prompts, so the agent measurably improves with
+/// time — while staying facts-only from official z.ai / zcode.z.ai docs.
+model AssistLearnEntry {
+  id         String    @id @default(cuid())
+  /// Normalized question fingerprint (lowercase, stopwords stripped) for
+  /// dedupe + similarity matching.
+  qKey       String
+  question   String
+  /// Draft or staff-approved answer (markdown; must cite official pages).
+  answer     String    @default("")
+  /// "auto" (verification flag / engine refusal) | "feedback" (thumbs-down) | "staff".
+  origin     String    @default("auto")
+  /// "pending" | "approved" | "rejected".
+  status     String    @default("pending")
+  /// Space-separated official source URLs backing the approved answer.
+  sourceUrls String    @default("")
+  /// Why it landed here (verification issues / user reason / staff note).
+  note       String?
+  /// How many times the approved answer has been used as prompt context.
+  hits       Int       @default(0)
+  lastHitAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([qKey])
+}
+
 model SyncRun {
   id        String   @id @default(cuid())
   status    String

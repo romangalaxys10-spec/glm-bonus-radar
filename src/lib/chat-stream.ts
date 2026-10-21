@@ -10,7 +10,9 @@ export interface ChatStreamHandlers {
   onStart?: () => void;
   /** Append this piece to the streaming bubble. */
   onDelta: (text: string) => void;
-  /** Terminal success payload (id/token/title/via/truncated/text). */
+  /** Generation finished — the trust pipeline (verify + humanize) is running. */
+  onVerify?: () => void;
+  /** Terminal success payload (id/token/title/via/truncated/text/verify). */
   onDone: (data: Record<string, unknown>) => void;
   /** Terminal failure after the stream started. */
   onError: (message: string) => void;
@@ -47,6 +49,8 @@ export async function consumeChatStream(
       }
     } else if (msg.type === "delta" && typeof msg.text === "string") {
       handlers.onDelta(msg.text);
+    } else if (msg.type === "verify") {
+      handlers.onVerify?.();
     } else if (msg.type === "done") {
       handlers.onDone(msg);
     } else if (msg.type === "error") {

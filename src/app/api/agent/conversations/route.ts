@@ -35,6 +35,16 @@ function parseStored(raw: string): IncomingMessage[] {
             ((m as IncomingMessage).role === "user" || (m as IncomingMessage).role === "assistant") &&
             typeof (m as IncomingMessage).content === "string",
         )
+          // Preserve additive flags (staff replies, verification badges) —
+          // legacy rows without them keep working untouched.
+          .map((m) => ({
+            role: m.role,
+            content: m.content,
+            ...(m.staff === true ? { staff: true } : {}),
+            ...(m.verify && typeof m.verify === "object" && typeof m.verify.status === "string"
+              ? { verify: { status: m.verify.status, ...(Array.isArray(m.verify.issues) ? { issues: m.verify.issues.slice(0, 3) } : {}) } }
+              : {}),
+          }))
       : [];
   } catch {
     return [];

@@ -15,6 +15,7 @@ import {
   uid,
 } from "@/components/portal/agent-messages";
 import { CONV_KEY, MODEL_KEY, type AgentUser } from "@/components/portal/agent-storage";
+import { AgentStaffPanel } from "@/components/portal/agent-staff";
 import { ModeToggle } from "@/components/portal/mode-toggle";
 
 /**
@@ -125,6 +126,10 @@ export function ChatShell({
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
+  /** Set while the server runs the trust pipeline (verify + humanize) after the deltas. */
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  /** Staff mode swaps the chat workspace for the staff panel. */
+  const [staffMode, setStaffMode] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -168,7 +173,7 @@ export function ChatShell({
           }
           throw new Error(String(data.error ?? "Could not open that chat."));
         }
-        const msgs = (data.messages as Array<{ role: "user" | "assistant"; content: string }>).map(toChatMsg);
+        const msgs = (data.messages as Array<{ role: "user" | "assistant"; content: string; staff?: boolean; verify?: { status: string; issues?: string[] } }>).map(toChatMsg);
         setMessages(msgs);
         setActiveId(id);
         setReveal(null);
@@ -369,9 +374,22 @@ export function ChatShell({
               prev.map((m) => (m.id === replyId ? { ...m, content: raw } : m)),
             );
           },
+          onVerify: () => {
+            /* Deltas done — the trust pipeline is now auditing the reply. */
+            if (replyId) setVerifyingId(replyId);
+          },
           onDone: (d) => {
             const finalText = typeof d.text === "string" && d.text ? d.text : raw;
             const parsed = parseAssistReply(finalText);
+            const verify =
+              d.verify && typeof d.verify === "object" && typeof (d.verify as { status?: unknown }).status === "string"
+                ? {
+                    status: String((d.verify as { status: unknown }).status),
+                    ...(Array.isArray((d.verify as { issues?: unknown }).issues)
+                      ? { issues: (d.verify as { issues: unknown[] }).issues.filter((x): x is string => typeof x === "string").slice(0, 3) }
+                      : {}),
+                  }
+                : undefined;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === replyId
@@ -379,6 +397,8 @@ export function ChatShell({
                       ...m,
                       content: parsed.text,
                       ...(parsed.blocks.length > 0 ? { blocks: parsed.blocks } : {}),
+                      ...(verify ? { verify } : {}),
+                      questionText: text,
                     }
                   : m,
               ),
@@ -405,6 +425,7 @@ export function ChatShell({
     } finally {
       setSending(false);
       setStreamingId(null);
+      setVerifyingId(null);
       abortRef.current = null;
     }
   }, [input, sending, threadBusy, messages, user, activeId, model, onInvalidToken, adoptConversation]);
@@ -455,6 +476,12 @@ export function ChatShell({
 
   return (
     <div className="zs flex h-[100dvh] overflow-hidden bg-canvas text-body antialiased selection:bg-azure/30">
+      {staffMode ? (
+        <div className="min-w-0 flex-1 overflow-y-auto">
+          <AgentStaffPanel onExit={() => setStaffMode(false)} />
+        </div>
+      ) : (
+      <>
       {/* Desktop sidebar */}
       <aside className="hidden w-[280px] shrink-0 flex-col border-r border-hair/10 bg-surface md:flex">
         {sidebar}
@@ -501,6 +528,18 @@ export function ChatShell({
             </p>
           </div>
           <ModeToggle className="hidden sm:inline-flex" />
+          <button
+            type="button"
+            onClick={() => setStaffMode(true)}
+            aria-label="Open staff panel"
+            title="Staff panel — review the learning queue, stats and help users"
+            className="rounded-lg p-1.5 text-faint transition-colors hover:bg-hair/5 hover:text-emerald-300"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+              <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />
+              <path d="M9.5 12l2 2 3.5-4" />
+            </svg>
+          </button>
           <div className="flex shrink-0 items-center rounded-full border border-hair/10 bg-surface p-0.5" role="group" aria-label="Agent mode">
             {(
               [
@@ -544,6 +583,8 @@ export function ChatShell({
                   <MessageBubble
                     key={m.id}
                     msg={m}
+                    verifying={streamingId === m.id && verifyingId === m.id}
+                    askToken={() => user.token}
                     revealText={
                       streamingId === m.id
                         ? stripStreamingFence(m.content)
@@ -596,6 +637,8 @@ export function ChatShell({
           </div>
         </footer>
       </div>
+      </>
+      )}
     </div>
   );
 }
