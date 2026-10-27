@@ -90,3 +90,6 @@ mailserver/test-body.txt
 mailserver/__pycache__/
 mailserver/.inbox.json
 .browsers/
+
+# content-guard snapshots (full backups incl. DB copy — never in git)
+backups/

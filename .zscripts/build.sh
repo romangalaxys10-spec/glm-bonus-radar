@@ -127,7 +127,21 @@ if [ "$ZBUILD_BG" = "1" ]; then
   {
     echo "[bg] === worker start $(date -u +%FT%TZ) (user $(id -un)) ==="
     if bun install; then echo "[bg] install ok $(date -u +%T)"; else echo "[bg] INSTALL FAILED"; fi
-    if bun run db:push; then echo "[bg] db ok $(date -u +%T)"; else echo "[bg] DB PUSH FAILED"; fi
+    if bun run db:push; then
+      echo "[bg] db ok $(date -u +%T)"
+      # STANDING RULE (owner, 2026-10-27): before any update/patch/deploy,
+      # read the live site content, back it up, and fold it into the DB that
+      # ships in the artifact — a deploy can never drop prod-only posts.
+      if bash scripts/content-guard.sh backup auto >> "$LOG" 2>&1; then
+        LATEST_BAK="$(ls -1dt /home/z/my-project/backups/*/ 2>/dev/null | head -1)"
+        if [ -n "$LATEST_BAK" ]; then
+          bun scripts/merge-prod-content.ts "$LATEST_BAK/prod-blog-posts.json" "$LATEST_BAK/local-blog-posts.json" >> "$LOG" 2>&1 || true
+          echo "[bg] prod content merged into shipping db (from $LATEST_BAK)"
+        fi
+      else
+        echo "[bg] WARN: content-guard backup failed — continuing (best-effort)"
+      fi
+    else echo "[bg] DB PUSH FAILED"; fi
     if bun run build; then
       echo "[bg] BUILD OK $(date -u +%FT%TZ)"
       # keep the persistent fallback current so a future restart-wipe ships
