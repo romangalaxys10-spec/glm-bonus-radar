@@ -7,8 +7,7 @@ import type { GeoDims, GeoSearchPayload, GeoSearchResult } from "@/lib/geosearch
 /**
  * zSearch — the GEO-first search engine UI.
  *
- * Visual language: the xShredo promo aesthetic (xshredo.com/promo/ai-vps) —
- * fixed near-black canvas, IBM Plex Sans light display headlines with an
+ * Visual language: fixed near-black canvas, IBM Plex Sans light display headlines with an
  * italic zinc second line, mono uppercase eyebrows, white pill CTA, a single
  * blue accent, hairline section dividers and #0a0a0b cards with white/10
  * borders. Independent of the portal palette system on purpose.
@@ -24,7 +23,7 @@ import type { GeoDims, GeoSearchPayload, GeoSearchResult } from "@/lib/geosearch
  */
 
 const EXAMPLES = [
-  "best vps for running ai agents 24/7",
+  "glm coding plan vs pay as you go",
   "how to make a website citable by ai assistants",
   "open source crm for solo founders",
   "email api for developers free tier",

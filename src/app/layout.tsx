@@ -46,7 +46,7 @@ export const viewport: Viewport = {
 
 /**
  * Runs before first paint: resolves the color mode (br-mode: light|dark,
- * default dark — the xShredo design) into the .light/.dark class + native
+ * default dark design) into the .light/.dark class + native
  * color-scheme, and keeps the legacy palette key harmless.
  */
 const themeBoot = `

@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { ScannerApp } from "@/components/portal/scanner-app";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { GitHubMark } from "@/components/portal/scanner-icons";
-import { AiVpsBadge } from "@/components/portal/ai-vps-badge";
-import { AgentNavButton } from "@/components/portal/agent-nav-button";
 
 export const metadata: Metadata = {
   title: "zScanner — free online Security, SEO/GEO/Performance, QA, Code and Anti AI-Slop scanners (URL or GitHub repo)",
@@ -49,8 +47,6 @@ export default function ScannerPage() {
                 {n.label}
               </a>
             ))}
-            {/* Highlighted promo button — the one accent pill in the menu (Task 44) */}
-            <AgentNavButton />
             <a
               href="https://github.com/romangalaxys10-spec/glm-bonus-radar"
               target="_blank"
@@ -90,9 +86,6 @@ export default function ScannerPage() {
             AI-writing patterns.
           </p>
         </section>
-
-        {/* AI-VPS promo badge (Task 43) — sits between the hero and the scanner grid */}
-        <AiVpsBadge />
 
         <section id="security" aria-label="Scanner" className="scroll-mt-24">
           <ScannerApp />

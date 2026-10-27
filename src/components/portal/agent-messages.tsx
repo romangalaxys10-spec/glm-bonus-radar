@@ -8,7 +8,7 @@ import { AssistBlocks } from "@/components/portal/assist-blocks";
  * Z-Assist full-page chat — message presentation.
  * Markdown-lite renderer (bold / code / links / bullets / fenced code /
  * source lines), chat bubbles, per-reply copy, empty state + starters.
- * Styled to the portal's xShredo tokens (#050505 canvas, #3b82f6 accent).
+ * Styled to the portal's tokens (#050505 canvas, #3b82f6 accent).
  */
 
 export interface ChatMsg {

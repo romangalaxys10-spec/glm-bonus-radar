@@ -19,7 +19,7 @@ import {
 import { zfunBestKey } from "@/lib/zfun";
 
 /* ------------------------------------------------------------------ */
-/* Palette — arcade colors over the portal's xShredo chrome.           */
+/* Palette — arcade colors over the portal's dark chrome.              */
 /* ------------------------------------------------------------------ */
 
 export const C = {
@@ -149,7 +149,7 @@ export function useInput(): Input {
   };
 }
 
-/** On-screen arcade button — 44px+ touch target, promo chip styling. */
+/** On-screen arcade button — 44px+ touch target, portal chip styling. */
 export function Pad({
   input,
   btn,
@@ -402,7 +402,7 @@ export function ctx2d(canvas: CanvasRef): CanvasRenderingContext2D | null {
 }
 
 /* ------------------------------------------------------------------ */
-/* GameShell — shared arcade cabinet chrome (promo design language).   */
+/* GameShell — shared arcade cabinet chrome (portal design language).  */
 /* ------------------------------------------------------------------ */
 
 export type GameStatus = "ready" | "playing" | "over" | "won";

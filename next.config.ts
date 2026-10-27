@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  /* The /agent-vps promo page was removed (sponsor ended). Old links —
+     bookmarks, search index, inbound links from the sponsor — redirect to
+     the homepage instead of 404ing. */
+  async redirects() {
+    return [{ source: "/agent-vps", destination: "/", permanent: true }];
+  },
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,

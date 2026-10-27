@@ -53,7 +53,7 @@ export async function buildGroundingCorpus(at = Date.now()): Promise<GroundingCo
       zcodeFetchedAt = zsnap.fetchedAt;
     }
   } catch {
-    /* zcode snapshot unavailable — curated section 11 still applies */
+    /* zcode snapshot unavailable — curated section 10 still applies */
   }
 
   const corpus: GroundingCorpus = {

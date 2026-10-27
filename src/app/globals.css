@@ -9,7 +9,7 @@
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  /* Semantic xShredo tokens — dark values below, white-paper values under
+  /* Semantic tokens — dark values below, white-paper values under
      html.light. Components use these instead of hardcoded zinc/white classes
      so both color modes stay in contrast (Task 55). */
   --color-canvas: var(--rc-bg);
@@ -63,7 +63,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Palette variables — xShredo promo design (whole-app flip).          */
+/* Palette variables — portal dark design (whole-app flip).            */
 /* Dark canvas by default; html.light flips the same semantic ramp to  */
 /* a white-paper counterpart (Task 55). The legacy data-palette key is */
 /* kept harmless by the boot script.                                   */
@@ -71,7 +71,7 @@
 
 :root {
   --radius: 0.875rem;
-  /* xshredo promo — dark (default) */
+  /* dark (default) */
   --rc-bg: #050505;
   --rc-surface: #0a0a0b;
   --rc-surface2: #111114;
@@ -135,7 +135,7 @@ html.light {
 }
 
 /* Legacy palette selectors intentionally removed — all palettes resolve
-   to the xShredo promo values above regardless of data-palette. */
+   to the values above regardless of data-palette. */
 
 /* ------------------------------------------------------------------ */
 /* Map palette variables onto shadcn tokens                            */

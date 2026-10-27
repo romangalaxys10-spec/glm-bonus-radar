@@ -226,7 +226,7 @@ export function FunClient() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--rc-bg)] text-body antialiased selection:bg-azure/30">
-      {/* Header — same chrome as the rest of the promo portal */}
+      {/* Header — same chrome as the rest of the portal */}
       <header className="sticky top-0 z-40 border-b border-hair/10 bg-canvas/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3 md:px-8">
           <div className="flex items-center gap-2.5">

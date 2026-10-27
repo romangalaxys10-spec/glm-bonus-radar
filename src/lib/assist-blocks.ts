@@ -80,7 +80,7 @@ const ActionsBlockSchema = z.object({
 /** Prebuilt local tools — computations run client-side only, nothing is sent anywhere. */
 const CalcBlockSchema = z.object({
   type: z.literal("calc"),
-  tool: z.enum(["credit-estimator", "always-on-tco"]),
+  tool: z.enum(["credit-estimator"]),
   title: z.string().min(1).max(120).optional(),
   /** Numbers the user already stated in the conversation (used as starting values). */
   prefill: z.record(z.string(), z.number().finite()).optional(),

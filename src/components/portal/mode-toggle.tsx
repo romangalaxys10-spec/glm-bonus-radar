@@ -4,7 +4,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
 /**
- * Color-mode toggle — flips the whole portal between the xShredo dark
+ * Color-mode toggle — flips the whole portal between the dark
  * design (default) and the white-paper light mode (Task 55). Writes
  * br-mode for the boot script; applies the class directly so the change
  * is instant with no reload. The <html> class IS the store: components

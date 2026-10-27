@@ -16,8 +16,7 @@ export const metadata: Metadata = {
 
 /**
  * /agent — the Z-Assist full-page chat (a chat.z.ai-style experience for
- * z.ai support). The 24x7 Agent VPS promo lives next door at /agent-vps.
- * Fonts load globally in the root layout (IBM Plex Sans/Mono).
+ * z.ai support). Fonts load globally in the root layout (IBM Plex Sans/Mono).
  */
 export default function AgentChatPage() {
   return <AgentChatApp />;

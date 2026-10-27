@@ -82,9 +82,9 @@ function corpusDigest(corpus: GroundingCorpus, question: string, answer: string)
 
 /* --------------------------- deterministic checks --------------------------- */
 
-/** URLs that are always allowed (portal + official + sponsor properties). */
+/** URLs that are always allowed (portal + official properties). */
 const URL_ALLOWLIST =
-  /^https:\/\/(?:[a-z0-9-]*\.)*(?:docs\.z\.ai|z\.ai|zcode\.z\.ai|zhelp\.space-z\.ai|xshredo\.com|github\.com\/zai-org|api\.z\.ai)(?:[/:?#]|$)/i;
+  /^https:\/\/(?:[a-z0-9-]*\.)*(?:docs\.z\.ai|z\.ai|zcode\.z\.ai|zhelp\.space-z\.ai|github\.com\/zai-org|api\.z\.ai)(?:[/:?#]|$)/i;
 
 function checkUrls(answer: string, corpusText: string, userText: string): string[] {
   const issues: string[] = [];

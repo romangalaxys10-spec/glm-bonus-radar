@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 export default function SearchPage() {
   return (
     <>
-      {/* zSearch uses the xShredo promo aesthetic: fixed dark canvas + IBM Plex
-          typography, independent of the portal palette — fonts load page-locally. */}
+      {/* zSearch uses a fixed dark canvas + IBM Plex typography, independent
+          of the portal palette — fonts load page-locally. */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link

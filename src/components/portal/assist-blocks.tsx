@@ -385,101 +385,6 @@ function CreditEstimator({ prefill, note, source }: { prefill?: Record<string, n
   );
 }
 
-function AlwaysOnTco({ prefill, note, source }: { prefill?: Record<string, number>; note?: string; source?: string }) {
-  const [seats, setSeats] = useState(clampNum(prefill?.seats, 1, 50, 3));
-  const [seatCost, setSeatCost] = useState(clampNum(prefill?.seatCost, 1, 500, 20));
-  const VPS_ENTRY = 5.75;
-
-  const saasMonthly = seats * seatCost;
-  const yearlySave = (saasMonthly - VPS_ENTRY) * 12;
-  const showSave = yearlySave > 0;
-
-  return (
-    <BlockCard kind="calc" label="interactive tool · local math" title="Per-seat SaaS vs one always-on box" note={note ?? undefined} source={source ?? undefined}>
-      <div className="space-y-2.5">
-        <ControlRow label="AI seats / users">
-          <input
-            type="number"
-            min={1}
-            max={50}
-            value={seats}
-            onChange={(e) => setSeats(clampNum(Number(e.target.value), 1, 50, seats))}
-            className={NUM}
-            aria-label="Number of seats"
-          />
-        </ControlRow>
-        <ControlRow label="Per-seat SaaS, $ / month">
-          <span className="flex items-center gap-1.5">
-            <input
-              type="range"
-              min={1}
-              max={100}
-              step={1}
-              value={seatCost}
-              onChange={(e) => setSeatCost(Number(e.target.value))}
-              className={`${RANGE} w-32`}
-              aria-label="Per-seat monthly cost in dollars"
-            />
-            <input
-              type="number"
-              min={1}
-              max={500}
-              value={seatCost}
-              onChange={(e) => setSeatCost(clampNum(Number(e.target.value), 1, 500, seatCost))}
-              className={NUM}
-              aria-label="Per-seat monthly cost in dollars (exact)"
-            />
-          </span>
-        </ControlRow>
-
-        <div className="grid grid-cols-2 gap-1.5">
-          <div className="rounded-lg border border-[var(--rc-border)] bg-[var(--rc-bg)] px-2.5 py-2">
-            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--rc-tone3)]">per-seat SaaS</p>
-            <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-[var(--rc-text)]">
-              ${saasMonthly.toLocaleString("en-US", { maximumFractionDigits: 2 })}<span className="text-[9.5px] text-[var(--rc-tone3)]">/mo</span>
-            </p>
-          </div>
-          <div className="rounded-lg border border-[color-mix(in_srgb,var(--rc-accent)_55%,transparent)] bg-[color-mix(in_srgb,var(--rc-accent)_10%,var(--rc-bg))] px-2.5 py-2">
-            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--rc-accent)]">24x7 agent vps</p>
-            <p className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-[var(--rc-bright)]">
-              ${VPS_ENTRY.toFixed(2)}<span className="text-[9.5px] text-[var(--rc-tone3)]">/mo entry</span>
-            </p>
-          </div>
-        </div>
-        <p className="text-[11.5px] leading-snug text-[var(--rc-text-dim)]">
-          {showSave ? (
-            <>
-              one flat always-on box instead of {seats} seats saves about{" "}
-              <strong className="font-semibold text-[var(--rc-bright)]">
-                ${Math.round(yearlySave).toLocaleString("en-US")} / year
-              </strong>{" "}
-              at your entered cost.
-            </>
-          ) : (
-            <>
-              at your entered cost the per-seat total is below the VPS entry price — the math only wins when seats ×
-              cost clears ${VPS_ENTRY.toFixed(2)}/mo.
-            </>
-          )}
-        </p>
-
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => {
-              setSeats(3);
-              setSeatCost(20);
-            }}
-            className="font-mono text-[10px] text-[var(--rc-tone3)] underline-offset-2 transition-colors hover:text-[var(--rc-text)] hover:underline"
-          >
-            reset
-          </button>
-          <span className="font-mono text-[9px] text-[var(--rc-tone3)]">numbers stay in your browser</span>
-        </div>
-      </div>
-    </BlockCard>
-  );
-}
 
 function clampNum(v: number | undefined, min: number, max: number, fallback: number): number {
   if (v == null || !Number.isFinite(v)) return fallback;
@@ -488,7 +393,7 @@ function clampNum(v: number | undefined, min: number, max: number, fallback: num
 
 function CalcBlockView({ block }: { block: CalcBlock }) {
   const props = { prefill: block.prefill, note: block.note, source: block.source };
-  return block.tool === "credit-estimator" ? <CreditEstimator {...props} /> : <AlwaysOnTco {...props} />;
+  return <CreditEstimator {...props} />;
 }
 
 /* ------------------------------ entry point ------------------------------- */

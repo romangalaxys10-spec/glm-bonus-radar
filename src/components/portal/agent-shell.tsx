@@ -774,17 +774,6 @@ function SidebarContent({
             <LogoutIcon className="h-3.5 w-3.5" />
           </button>
         </div>
-        <Link
-          href="/agent-vps"
-          className="mt-2.5 block rounded-xl border border-hair/10 bg-canvas px-3 py-2 transition-colors hover:border-azure/40"
-        >
-          <p className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-deep">
-            sponsored · xshredo
-          </p>
-          <p className="mt-0.5 text-[12px] leading-snug text-soft">
-            24x7 Agent VPS — run AI agents around the clock, from $5.75/mo →
-          </p>
-        </Link>
       </div>
     </div>
   );
