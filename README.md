@@ -107,6 +107,25 @@ Z-Assist, zSearch, zFun, the Endpoint and Membox — plus build notes and lesson
   after a database rebuild). Agent-pushed markdown is rendered by an escape-first renderer —
   no HTML injection path from content to page.
 
+### Dev Control (`POST /api/dev`)
+
+The owner-only remote management endpoint — lets a paired agent update any part of the
+project (content, features, code) without shell access to the sandbox.
+
+- **Actions** (POST JSON, `Authorization: Bearer zdev_…`):
+  `status` (git + runtime info) · `read {path}` · `list {dir}` · `write {path, content}` ·
+  `delete {path}` (files / empty dirs) · `exec {command}` (bash, 120 s cap, captured
+  stdout/stderr — install / build / migrate / git) · `rotate` (new pairing token).
+- **Path guards**: every path must resolve inside the project root; a denylist protects
+  `.env*`, `.git`, `node_modules`, `.next`, `.zscripts/cache` and the live SQLite file.
+- **Pairing**: token lives in `.env` (`DEV_PUSH_TOKEN`) with a DB fallback row (`DevToken`,
+  self-heals after a database rebuild); `POST /api/dev {"action":"rotate"}` swaps it without
+  a deploy.
+- **Deploy note**: the sandbox dev server hot-reloads edited `src/` files; the deployed
+  zhelp bundle changes only after `exec` runs `bun run build` and a platform Deploy click
+  ships the packed artifact.
+
+
 ### Platform-wide
 
 - **Dark-first design** with a full light/white-paper mode toggle (`ModeToggle` in every

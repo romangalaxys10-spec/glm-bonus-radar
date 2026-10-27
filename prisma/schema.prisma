@@ -239,3 +239,12 @@ model BlogToken {
   token     String   @unique
   createdAt DateTime @default(now())
 }
+
+/// Singleton Bearer token that authorizes ALL actions on /api/dev — the
+/// remote dev-control endpoint (read/write files, exec, rotate itself).
+/// Auth order: env DEV_PUSH_TOKEN first, then this DB row.
+model DevToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  createdAt DateTime @default(now())
+}
