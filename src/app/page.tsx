@@ -30,6 +30,7 @@ const NAV = [
   { href: "/search", label: "geo search" },
   { href: "/agent", label: "z-assist" },
   { href: "/fun", label: "zfun" },
+  { href: "/blog", label: "dev blog" },
 ];
 
 const GITHUB_REPO = "https://github.com/romangalaxys10-spec/glm-bonus-radar";

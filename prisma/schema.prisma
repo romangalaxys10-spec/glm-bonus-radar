@@ -208,3 +208,34 @@ model ScanSnapshot {
   @@index([scanner, targetKey, createdAt])
   @@index([createdAt])
 }
+
+/// My Dev Blog — mini articles about the projects built for/around Z.AI.
+/// Anyone can read; only the paired agent (Bearer token) can publish.
+model BlogPost {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  /// Short teaser shown on the blog index (plain text, 1-2 sentences).
+  excerpt   String
+  /// Markdown-lite body (headings, bold, code fences, lists, links).
+  body      String
+  /// Comma-separated lowercase tags, e.g. "z.ai, agents, open-source".
+  tags      String?
+  /// Display author ("Rommark" by default, or the pushing agent's name).
+  author    String?
+  /// "seed" = shipped with the portal, "agent" = pushed via the API.
+  source    String   @default("agent")
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+}
+
+/// Singleton Bearer token that authorizes POST/DELETE on /api/blog.
+/// Auth order: env BLOG_PUSH_TOKEN first, then this DB row.
+model BlogToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  createdAt DateTime @default(now())
+}

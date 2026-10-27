@@ -92,6 +92,21 @@ An OpenAI/Anthropic-compatible API gateway on top of the platform:
 issuable API keys and a special `z-assist` model id that answers from the same grounded docs
 brain. Point any existing SDK or agent at it and go.
 
+### My Dev Blog (`/blog`)
+
+First-party mini articles about the projects built for and around Z.AI — the Radar, zScanner,
+Z-Assist, zSearch, zFun, the Endpoint and Membox — plus build notes and lessons.
+
+- **Public read, token-gated write**: `GET /api/blog` (list) and `GET /api/blog/<slug>` are open;
+  publishing needs a Bearer token.
+- **Agent pairing**: `POST /api/blog` with `Authorization: Bearer <token>` and JSON
+  `{ title, body (markdown), excerpt?, tags?, author?, slug? }` — re-pushing the same slug
+  updates the article in place; `DELETE /api/blog?slug=…` removes one;
+  `POST /api/blog {"action":"rotate"}` rotates the pairing token.
+- The pairing token lives in `.env` (`BLOG_PUSH_TOKEN`) with a DB fallback row (self-heals
+  after a database rebuild). Agent-pushed markdown is rendered by an escape-first renderer —
+  no HTML injection path from content to page.
+
 ### Platform-wide
 
 - **Dark-first design** with a full light/white-paper mode toggle (`ModeToggle` in every
