@@ -184,7 +184,7 @@ function ToolCard({ tool }: { tool: Tool }) {
   );
 }
 
-export function ToolsSection() {
+export function ToolsSection({ layout = "wide" }: { layout?: "wide" | "narrow" }) {
   const featured = TOOLS.filter((t) => t.featured);
   const rest = TOOLS.filter((t) => !t.featured);
   return (
@@ -194,7 +194,9 @@ export function ToolsSection() {
           <ToolCard key={t.id} tool={t} />
         ))}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* "narrow" keeps the rest-grid at 2 columns so the cards stay readable
+          inside narrower containers (e.g. the blog's max-w-3xl main column). */}
+      <div className={layout === "narrow" ? "grid gap-4 sm:grid-cols-2" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-4"}>
         {rest.map((t) => (
           <ToolCard key={t.id} tool={t} />
         ))}

@@ -2,18 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatBlogDate } from "@/lib/blog";
+import { ToolsSection } from "@/components/portal/tools-section";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 
 export const metadata: Metadata = {
   title: "My Dev Blog — build notes on the Z.AI projects (GLM Bonus Radar, zScanner, Z-Assist, zSearch, zFun, Endpoint, Membox)",
   description:
-    "First-party mini articles about the projects built for and around Z.AI: the GLM Bonus Radar portal, the zScanner suite, the Z-Assist docs-grounded chat, zSearch GEO ranking, the zFun arcade, the OpenAI-compatible endpoint and Membox. Published straight from the dev's agents via a token-gated API.",
+    "First-party mini articles about the projects built for and around Z.AI: the GLM Bonus Radar portal, the zScanner suite, the Z-Assist docs-grounded chat, zSearch GEO ranking, the zFun arcade, the OpenAI-compatible endpoint and Membox. Published straight from the dev's agents via a token-gated API — plus the useful-tools toolkit from the same builder.",
   alternates: { canonical: "/blog" },
 };
 
 export const dynamic = "force-dynamic";
 
 const NAV = [
+  { href: "#tools", label: "tools" },
   { href: "/", label: "← radar" },
   { href: "/scanner", label: "scanner" },
   { href: "/agent", label: "z-assist" },
@@ -137,6 +139,25 @@ export default async function BlogIndexPage() {
               </article>
             ))
           )}
+        </section>
+
+        {/* Useful tools — moved here from the homepage so the blog is the
+            single hub for everything the builder ships alongside the radar */}
+        <section id="tools" aria-label="Useful tools" className="mt-12 scroll-mt-24">
+          <div className="mb-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rc-accent)]">
+              toolkit · by the same builder
+            </p>
+            <h2 className="mt-1.5 font-display text-2xl font-light tracking-[-0.01em] text-[var(--rc-bright)] md:text-3xl">
+              Useful tools
+            </h2>
+            <p className="mt-2 text-[15px] text-[var(--rc-text-dim)]">
+              Field-tested utilities and deep-dive write-ups from Rommark.Dev — the GitHub auto-push
+              protocol that keeps agent work safe, the self-healing deploy kit that keeps this very
+              portal online, and hands-on reviews of agent memory and multi-agent orchestration tooling.
+            </p>
+          </div>
+          <ToolsSection layout="narrow" />
         </section>
 
         {/* Agent pairing info — endpoint shape only, never the token itself */}

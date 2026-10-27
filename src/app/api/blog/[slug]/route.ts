@@ -14,7 +14,7 @@ export async function GET(
     where: { slug },
     select: {
       slug: true, title: true, excerpt: true, body: true, tags: true,
-      author: true, source: true, createdAt: true, updatedAt: true,
+      author: true, source: true, published: true, createdAt: true, updatedAt: true,
     },
   });
 

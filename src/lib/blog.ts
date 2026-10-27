@@ -75,16 +75,6 @@ export function slugify(input: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export type BlogWriteInput = {
-  title: unknown;
-  body: unknown;
-  excerpt?: unknown;
-  tags?: unknown;
-  author?: unknown;
-  slug?: unknown;
-  published?: unknown;
-};
-
 export type BlogWriteResult =
   | { ok: true; value: {
       title: string; body: string; excerpt: string; tags: string | null;
@@ -97,7 +87,7 @@ function asString(v: unknown): string | null {
 }
 
 /** Validates + normalizes an agent (or seed) payload into safe columns. */
-export function normalizeBlogWrite(input: BlogWriteInput): BlogWriteResult {
+export function normalizeBlogWrite(input: Record<string, unknown>): BlogWriteResult {
   const title = asString(input.title);
   if (!title || title.length < LIMITS.title.min || title.length > LIMITS.title.max) {
     return { ok: false, error: `title must be a string of ${LIMITS.title.min}-${LIMITS.title.max} chars.` };

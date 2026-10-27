@@ -14,7 +14,6 @@ import { DataFreshnessBadge } from "@/components/portal/data-freshness";
 import { AnnouncementsStrip } from "@/components/portal/announcements-strip";
 import { ModeToggle } from "@/components/portal/mode-toggle";
 import { CnOpsSection } from "@/components/portal/cn-ops-section";
-import { ToolsSection } from "@/components/portal/tools-section";
 import { INVITE_CODE, INVITE_URL } from "@/lib/invite";
 import { LiveClocks } from "@/components/portal/live-clocks";
 
@@ -25,12 +24,11 @@ const NAV = [
   { href: "#pricing", label: "pricing" },
   { href: "#plans", label: "plans" },
   { href: "#invite", label: "invite" },
-  { href: "#tools", label: "tools" },
+  { href: "/blog", label: "dev blog" },
   { href: "/scanner", label: "scanner" },
   { href: "/search", label: "geo search" },
   { href: "/agent", label: "z-assist" },
   { href: "/fun", label: "zfun" },
-  { href: "/blog", label: "dev blog" },
 ];
 
 const GITHUB_REPO = "https://github.com/romangalaxys10-spec/glm-bonus-radar";
@@ -50,6 +48,16 @@ export function SearchGlyph({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
       <circle cx="11" cy="11" r="7" />
       <line x1="20.5" y1="20.5" x2="15.9" y2="15.9" />
+    </svg>
+  );
+}
+
+/** Feather-style pen glyph for the dev-blog hero chip. */
+export function BlogGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
     </svg>
   );
 }
@@ -162,6 +170,16 @@ export default function Home() {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <AskZAssistLink />
             <Link
+              href="/blog"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--rc-accent)_60%,transparent)] bg-[color-mix(in_srgb,var(--rc-accent)_14%,var(--rc-surface))] px-4 py-2 text-sm font-semibold text-[var(--rc-accent)] shadow-md transition-transform hover:scale-[1.03] active:scale-95"
+            >
+              <BlogGlyph className="h-4 w-4" />
+              Dev Blog
+              <span aria-hidden className="font-mono">
+                →
+              </span>
+            </Link>
+            <Link
               href="/search"
               className="inline-flex items-center gap-1.5 rounded-full border border-[var(--rc-border)] bg-[var(--rc-surface)] px-4 py-2 text-sm font-semibold shadow-md transition-transform hover:scale-[1.03] active:scale-95"
             >
@@ -248,16 +266,6 @@ export default function Home() {
         <section id="invite" aria-label="Invite offer" className="scroll-mt-24 pb-14">
           <InviteSection />
         </section>
-
-        {/* Useful tools */}
-        <section id="tools" aria-label="Useful tools" className="scroll-mt-24">
-          <SectionHeader
-            eyebrow="toolkit · by the same builder"
-            title="Useful tools"
-            blurb="Field-tested utilities and deep-dive write-ups from Rommark.Dev — the GitHub auto-push protocol that keeps agent work safe, the self-healing deploy kit that keeps this very portal online, and hands-on reviews of agent memory and multi-agent orchestration tooling."
-          />
-          <ToolsSection />
-        </section>
       </main>
 
       {/* Footer */}
@@ -312,6 +320,14 @@ export default function Home() {
                     className="underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--rc-accent)]"
                   >
                     /changelog — AI audit trail
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/blog"
+                    className="underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--rc-accent)]"
+                  >
+                    /blog — My Dev Blog + useful tools
                   </Link>
                 </li>
                 <li>
