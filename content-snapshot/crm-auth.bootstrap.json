@@ -1,0 +1,7 @@
+{
+  "_comment": "SANITIZED MIRROR PLACEHOLDER - the real bootstrap secret lives only in the owner's working tree and is never synced to public repos (repo access must not imply superadmin access). Fresh clones: superadmin seeding is skipped (empty values are falsy in boot-seed.ts); configure the env auth channel per src/lib/crm-auth.ts instead.",
+  "v": 1,
+  "user": "",
+  "pinHash": "",
+  "secret": ""
+}
